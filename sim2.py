@@ -22,9 +22,9 @@ class Population(object):
     information about that genotype. When a mutation occurs, a daughter node
     is created.
     """
-    def __init__(self, population_size, base_fitness):
+    def __init__(self, population_size, base_fitness = 1.0):
         """Create a population"""
-        self.counter = itertools.count(0)
+        self.genotype_counter = itertools.count(0)
         self.conf_popsize = population_size
         self.generations = 0
         self.genotypes = igraph.Graph(directed = True,
@@ -40,7 +40,7 @@ class Population(object):
                                                       'fitness': 0,
                                                       'fitness_diff': [0]})
 
-        self.genotypes.add_vertex(name = next(self.counter), depth = 0,
+        self.genotypes.add_vertex(name = next(self.genotype_counter), depth = 0,
                                   abundance = population_size,
                                   abundances = [population_size],
                                   frequency = 1.0, max_frequency = 1.0,
@@ -82,7 +82,7 @@ class Population(object):
 
                 mu_effect = nnormal(loc = 0.0, scale = 0.1)
 
-                self.genotypes.add_vertex(name = next(self.counter),
+                self.genotypes.add_vertex(name = next(self.genotype_counter),
                                           abundance = 1, abundances = [1],
                                           depth = self.genotypes.vs[parent_id]['depth'] + 1,
                                           fitness = self.genotypes.vs[parent_id]['fitness'] + mu_effect,
@@ -122,7 +122,7 @@ class Population(object):
     def write_csvdata(self, outfile, time):
         """Write information about each genotype to a CSV file"""
         for extant in self.genotypes.vs.select(lambda v: v['abundance'] > 0):
-            outfile.writerow({'Cycle': time,
+            outfile.writerow({'Generation': time,
                               'Genotype': extant.index,
                               'Depth': extant['depth'],
                               'Fitness': extant['fitness'],
@@ -131,19 +131,21 @@ class Population(object):
 
 # ---------------
 
-def run_simulation(num_generations):
-    outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
-                             fieldnames = ['Cycle', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'Frequency'])
+def run_simulation(num_generations, outfile):
+    outfile = csv.DictWriter(open(outfile, 'w'),
+                             fieldnames = ['Generation', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'Frequency'])
     outfile.writeheader()
 
-    p = Population(population_size = POPSIZE, base_fitness = 1.0)
+    p = Population(population_size = POPSIZE)
 
-    for c in srange(num_generations):
-        print("Cycle {c}".format(c=c))
-        p.evolve(time = c, mutation_rate = MUTATION_RATE, prune_min_freq = THRESH_FREQ)
-        p.write_csvdata(outfile = outfile, time = c)
-        #p.write_gml(filename = "POPZZZ-{0:05d}.gml".format(c))
+    for gen in srange(num_generations):
+        print("Gen {g}".format(g = gen))
+        p.evolve(time = gen, mutation_rate = MUTATION_RATE,
+                 prune_min_freq = THRESH_FREQ)
+        p.write_csvdata(outfile = outfile, time = gen)
+
+    p.write_gml("tree-end.gml")
 
 
 if __name__ == "__main__":
-    run_simulation(num_generations = NUM_CYCLES)
+    run_simulation(num_generations = NUM_CYCLES, outfile = OUTFILENAME)

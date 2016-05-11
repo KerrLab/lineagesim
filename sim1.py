@@ -17,7 +17,6 @@ POPSIZE = int(1e6)
 NUM_CYCLES = 10000
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
-CTR = itertools.count(0)
 THRESH_FREQ = 0.001
 
 # current abundances: [v['abundances'][-1] for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None)]
@@ -29,7 +28,7 @@ THRESH_FREQ = 0.001
 # -----------------------------------------------------------------------------
 
 # Create the population
-def create_population(population_size, base_fitness):
+def create_population(population_size, counter, base_fitness = 1.0):
     """Create the population"""
     p = igraph.Graph(directed = True,
                      graph_attrs = {'population_size': population_size,
@@ -44,7 +43,7 @@ def create_population(population_size, base_fitness):
                                      'fitness': 0,
                                      'fitness_diff': [0]})
 
-    p.add_vertex(name = next(CTR), depth = 0, abundance = population_size,
+    p.add_vertex(name = next(counter), depth = 0, abundance = population_size,
                  abundances = [population_size], frequency = 1.0,
                  max_frequency = 1.0, fitness = base_fitness,
                  fitness_diff = [0])
@@ -64,7 +63,7 @@ def reproduce(p, population_size):
     return p
 
 
-def mutate_bdc(p, mutation_rate):
+def mutate_bdc(p, mutation_rate, genotype_counter):
     """Mutate individuals in the population"""
 
     assert(mutation_rate >= 0 and mutation_rate <= 1)
@@ -78,7 +77,8 @@ def mutate_bdc(p, mutation_rate):
             # TODO: handle mutation effect sizes properly
             mu_effect = nnormal(loc = 0.0, scale = 0.1)
 
-            p.add_vertex(name = next(CTR), abundance = 1, abundances = [1],
+            p.add_vertex(name = next(genotype_counter),
+                         abundance = 1, abundances = [1],
                          depth = p.vs[parent_id]['depth'] + 1,
                          fitness = p.vs[parent_id]['fitness'] + mu_effect,
                          fitness_diff = [mu_effect], frequency = 0,
@@ -95,12 +95,6 @@ def dilute(p, dilution_prob):
     p.vs['abundance'] = nbinom(n = p.vs['abundance'], p = dilution_prob)
     return p
 
-
-def prune(p):
-    """Delete leaf nodes that have abundance 0"""
-    #p.vs.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None).delete()
-    p.vs.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < THRESH_FREQ).delete()
-    return p
 
 def prune_frequency(p, min_frequency):
     """Delete extinct leaf nodes that did not reach a given frequency"""
@@ -140,23 +134,21 @@ def graph_json(g, filename, **kwargs):
 def run_simulation(num_generations):
 
     outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
-                             fieldnames = ['Cycle', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'Frequency'])
+                             fieldnames = ['Generation', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'Frequency'])
     outfile.writeheader()
 
-    genotypes = create_population(population_size = POPSIZE, base_fitness = 1.0)
+    genotype_counter = itertools.count(0)
+    genotypes = create_population(population_size = POPSIZE, counter = genotype_counter)
 
-    for c in srange(num_generations):
-        # Stop the simulation if the population is dead
-        if sum(genotypes.vs['abundance']) == 0:
-            break
+    for gen in srange(num_generations):
+        genotypes.vs.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
+        genotypes.vs.select(lambda v: v['abundance'] > 0)['last_seen'] = gen
 
-        genotypes.vs.select(lambda v: v['first_seen'] is None)['first_seen'] = c
-        genotypes.vs.select(lambda v: v['abundance'] > 0)['last_seen'] = c
-
-        print("Cycle {c}. Max depth: {d}".format(c = c, d = max(genotypes.vs['depth'])))
+        #print("Generation {c}. Max depth: {d}".format(c = gen, d = max(genotypes.vs['depth'])))
+        print("Gen {g}".format(g = gen))
 
         for extant in genotypes.vs.select(lambda v: v['abundance'] > 0):
-            outfile.writerow({'Cycle': c,
+            outfile.writerow({'Generation': gen,
                               'Genotype': extant.index,
                               'Depth': extant['depth'],
                               'Fitness': extant['fitness'],
@@ -164,8 +156,7 @@ def run_simulation(num_generations):
                               'Frequency': extant['frequency']})
 
         reproduce(genotypes, population_size = POPSIZE)
-        mutate_multiples(genotypes, mutation_rate = MUTATION_RATE, counter = CTR)
-        #prune(genotypes)
+        mutate_multiples(genotypes, mutation_rate = MUTATION_RATE, counter = genotype_counter)
         prune_frequency(genotypes, min_frequency = THRESH_FREQ)
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None):
@@ -179,7 +170,7 @@ def run_simulation(num_generations):
             v['max_frequency'] = v['frequency']
 
         # For writing the tree at every cycke
-        #genotypes.write_gml("TREES/genotypes-{0:05d}.gml".format(c))
+        #genotypes.write_gml("TREES/genotypes-{0:05d}.gml".format(gen))
 
     #graph_json(genotypes, "GENOTYPEZZZZ.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
