@@ -14,10 +14,12 @@ from six.moves import range as srange
 from mutate_multiples import mutate_multiples
 
 POPSIZE = int(1e6)
-NUM_CYCLES = 10000
+NUM_CYCLES = 1000
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
 THRESH_FREQ = 0.001
+
+#np.random.seed(90210)
 
 # current abundances: [v['abundances'][-1] for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None)]
 # g.vs(abundance_gt=0)
@@ -84,7 +86,7 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
                          fitness_diff = [mu_effect], frequency = 0,
                          max_frequency = 0)
             p.add_edge(source = parent_id, target = p.vcount() - 1,
-                       color = int(mu_effect >= 0))
+                       fitness_effect = mu_effect)
 
     return p
 
@@ -170,9 +172,9 @@ def run_simulation(num_generations):
             v['max_frequency'] = v['frequency']
 
         # For writing the tree at every cycke
-        #genotypes.write_gml("TREES/genotypes-{0:05d}.gml".format(gen))
+        #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
-    #graph_json(genotypes, "GENOTYPEZZZZ.json", sort_keys = True)
+    #graph_json(genotypes, "tree-end.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
 
 # -----------------------------------------------------------------------------

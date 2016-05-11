@@ -90,7 +90,7 @@ class Population(object):
                                           frequency = 0, max_frequency = 0)
                 self.genotypes.add_edge(source = parent_id,
                                         target = self.genotypes.vcount() - 1,
-                                        color = int(mu_effect >= 0))
+                                        fitness_effect = mu_effect)
 
 
     def dilute(self, dilution_prob):

@@ -29,7 +29,7 @@ def mutate_multiples(p, mutation_rate, counter):
                              fitness_diff = [mu_effect], frequency = 0,
                              max_frequency = 0)
                 p.add_edge(source = parent_id, target = p.vcount() - 1,
-                           color = int(np.prod(1 + mu_effect) >= 0))
+                           fitness_effect = np.prod(1 + mu_effect))
 
         r = new_r
         k += 1
