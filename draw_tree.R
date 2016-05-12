@@ -10,6 +10,7 @@ fixation_threshold <- 1 - 1e-4
 g <- read_graph("tree-end.gml", format="gml")
 V(g)$color <- V(g)$abundance > 0
 V(g)$size <- 4 + ((V(g)$totalabundance / popsize) * 8) 
+V(g)$label <- ifelse(V(g)$fixationtime >=0, V(g)$fixationtime - V(g)$firstseen, "")
 V(g)$shape <- vertex_shapes[  as.numeric((V(g)$totalabundance / popsize) > fixation_threshold)   + 1]
 E(g)$color <- edge_colors[as.numeric(E(g)$fitnesseffect >= 0) + 1]
 

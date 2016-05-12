@@ -15,10 +15,11 @@ from six.moves import range as srange
 from mutate_multiples import mutate_multiples
 
 POPSIZE = int(1e6)
-NUM_CYCLES = 1000
+NUM_CYCLES = 10000
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
 THRESH_FREQ = 0.001
+FIXATION_THRESH = 1 - 1e-4
 
 #np.random.seed(90210)
 
@@ -44,13 +45,19 @@ def create_population(population_size, counter, base_fitness = 1.0):
                                      'total_abundance': 0,
                                      'frequency': 0,
                                      'max_frequency': 0,
+                                     'fixation_time': -1,
                                      'fitness': 0,
                                      'fitness_diff': [0]})
 
-    p.add_vertex(name = next(counter), depth = 0, abundance = population_size,
+    p.add_vertex(name = next(counter),
+                 depth = 0,
+                 abundance = population_size,
                  abundances = [population_size],
-                 total_abundance = population_size, frequency = 1.0,
-                 max_frequency = 1.0, fitness = base_fitness,
+                 total_abundance = population_size,
+                 frequency = 1.0,
+                 max_frequency = 1.0,
+                 fixation_time = 0,
+                 fitness = base_fitness,
                  fitness_diff = [0])
     return p
 
@@ -83,13 +90,17 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
             mu_effect = nnormal(loc = 0.0, scale = 0.1)
 
             p.add_vertex(name = next(genotype_counter),
-                         abundance = 1, abundances = [1],
+                         abundance = 1,
+                         abundances = [1],
                          total_abundance = 1,
                          depth = p.vs[parent_id]['depth'] + 1,
                          fitness = p.vs[parent_id]['fitness'] + mu_effect,
-                         fitness_diff = [mu_effect], frequency = 0,
+                         fitness_diff = [mu_effect],
+                         frequency = 0,
+                         fixation_time = -1,
                          max_frequency = 0)
-            p.add_edge(source = parent_id, target = p.vcount() - 1,
+            p.add_edge(source = parent_id,
+                       target = p.vcount() - 1,
                        fitness_effect = mu_effect)
 
     return p
@@ -136,6 +147,7 @@ def graph_write_json(g, filename, **kwargs):
                                      'total_abundance': int(v['total_abundance']),
                                      'frequency': v['frequency'],
                                      'max_frequency': v['max_frequency'],
+                                     'fixation_time': v['fixation_time'],
                                      'fitness': v['fitness'],
                                      'fitness_diff': v['fitness_diff']}} for v in g.vs]
 
@@ -152,7 +164,7 @@ def graph_write_json(g, filename, **kwargs):
 def run_simulation(num_generations):
 
     outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
-                             fieldnames = ['Generation', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'TotAbundance', 'Frequency'])
+                             fieldnames = ['Generation', 'Genotype', 'FirstSeen', 'LastSeen', 'Depth', 'Fitness', 'FitnessDiff', 'Abundance', 'TotAbundance', 'Frequency', 'FixationTime'])
     outfile.writeheader()
 
     genotype_counter = itertools.count(0)
@@ -171,12 +183,16 @@ def run_simulation(num_generations):
 
         for g in genotypes.vs.select(lambda v: v['total_abundance'] > 0):
             outfile.writerow({'Generation': gen,
-                              'Genotype': g.index,
+                              'Genotype': g['name'],
+                              'FirstSeen': g['first_seen'],
+                              'LastSeen': g['last_seen'],
                               'Depth': g['depth'],
                               'Fitness': g['fitness'],
+                              'FitnessDiff': sum(g['fitness_diff']),
                               'Abundance': g['abundance'],
                               'TotAbundance': g['total_abundance'],
-                              'Frequency': g['frequency']})
+                              'Frequency': g['frequency'],
+                              'FixationTime': g['fixation_time']})
 
         reproduce(genotypes, population_size = POPSIZE)
         #mutate_multiples(genotypes, mutation_rate = MUTATION_RATE, genotype_counter = genotype_counter)
@@ -193,6 +209,8 @@ def run_simulation(num_generations):
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None and v['frequency'] > v['max_frequency']):
             v['max_frequency'] = v['frequency']
+
+        genotypes.vs.select(lambda v: v['fixation_time'] == -1 and (float(v['total_abundance']) / POPSIZE) >= FIXATION_THRESH)['fixation_time'] = gen
 
         # For writing the tree at every cycke
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
