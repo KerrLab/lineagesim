@@ -3,6 +3,7 @@
 import csv
 import itertools
 import json
+import sys
 
 import igraph
 import numpy as np
@@ -162,7 +163,11 @@ def run_simulation(num_generations):
         genotypes.vs.select(lambda v: v['abundance'] > 0)['last_seen'] = gen
 
         #print("Generation {c}. Max depth: {d}".format(c = gen, d = max(genotypes.vs['depth'])))
-        print("Gen {g}".format(g = gen))
+        #print("Gen {g}".format(g = gen))
+        sys.stdout.write("\r")
+        pct = float(gen) / num_generations
+        sys.stdout.write("[%-40s] %d%%" % ('='* int(40 * pct), (pct * 100)))
+        sys.stdout.flush()
 
         for g in genotypes.vs.select(lambda v: v['total_abundance'] > 0):
             outfile.writerow({'Generation': gen,
