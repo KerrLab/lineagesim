@@ -11,8 +11,10 @@ from numpy.random import multinomial as nmultinom
 from numpy.random import normal as nnormal
 from six.moves import range as srange
 
+from matplotlib import pyplot 
+
 POPSIZE = int(1e6)
-NUM_CYCLES = 1000
+NUM_CYCLES = 500
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
 THRESH_FREQ = 2
@@ -94,20 +96,29 @@ def mutate_bdc(p, mutation_rate, node_counter):
             p.add_vertex(name=new_mut_id,
                          genotype_node = False,
                          fitness = mu_effect,
-                         frequency=None,
+                         frequency=1.0/p['population_size'],
                          abundances=[])
 
             new_genotype_id = next(node_counter)
+
             p.add_vertex(name = new_genotype_id,
                          abundance = 1, abundances = [1],
                          depth = genotype_nodes[parent_id]['depth'] + 1,
                          fitness = genotype_nodes[parent_id]['fitness'] + mu_effect,
                          fitness_diff = [mu_effect], frequency = 0,
                          max_frequency = 0, genotype_node = True)
-            p.add_edge(source = parent_id, target = new_genotype_id,
+            
+            #add edge to new mutation
+            p.add_edge(source = p.vcount() - 1, target = p.vcount() - 2, relational=False)
+
+            #add lineage edge between parent and offspring
+            p.add_edge(source = genotype_nodes[parent_id], target = p.vcount() - 1,
                        fitness_effect = mu_effect, relational=True)
 
-            p.add_edge(source = new_genotype_id, target = new_mut_id, relational=False)
+            #add mutational neighbors from parent to offspring vertex
+            mutational_neighbors = p.vs[p.neighbors(genotype_nodes[parent_id])].select(genotype_node_eq=False)
+            for mutational_node in mutational_neighbors:
+                p.add_edge(source=p.vcount() - 1, target=mutational_node, relational=False)
 
     return p
 
@@ -128,10 +139,15 @@ def prune_frequency(p, min_frequency):
     genotype_nodes.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
     return p
 
+def prune_mutations(p):
+    mutation_nodes = p.vs.select(genotype_node_eq=False)
+    mutation_nodes.select(lambda v: v['frequency']==0 and v['first_seen'] is not None).delete()
+    return p
+
 
 # -----------------------------------------------------------------------------
 
-def graph_json(g, filename, **kwargs):
+def graph_write_json(g, filename, **kwargs):
     """Write the graph to JSON file"""
     d = {}
     d['attributes'] = {a:g[a] for a in g.attributes()}
@@ -144,10 +160,12 @@ def graph_json(g, filename, **kwargs):
                                      'depth': v['depth'],
                                      'abundance': int(v['abundance']),
                                      'abundances': v['abundances'],
+                                     'total_abundance': int(v['total_abundance']),
                                      'frequency': v['frequency'],
                                      'max_frequency': v['max_frequency'],
                                      'fitness': v['fitness'],
                                      'fitness_diff': v['fitness_diff']}} for v in g.vs]
+
     d['edges'] = [{'index': e.index,
                    'source': e.source,
                    'target': e.target,
@@ -155,6 +173,7 @@ def graph_json(g, filename, **kwargs):
 
     with open(filename, 'w') as outfile:
         json.dump(d, outfile, **kwargs)
+
 
 # -----------------------------------------------------------------------------
 
@@ -208,23 +227,50 @@ def run_simulation(num_generations):
 
 
         mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
-        
         mutation_nodes.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
-        mutation_nodes.select(lambda v: v['frequency'] > 0)['last_seen'] = gen
 
         for m_node in mutation_nodes:
             m_node['frequency'] = np.sum(genotypes.vs[genotypes.neighbors(m_node)]['frequency'])
             #abusing the verticies def.
             m_node['abundances'].append(m_node['frequency'])
 
+        prune_mutations(genotypes)
+
+        #reset mutation nodes after pruning
+        mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
+
+        mutation_nodes.select(lambda v: v['frequency'] > 0)['last_seen'] = gen
+
+
         # For writing the tree at every cycke
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
+        mutation_frequencies = mutation_nodes['abundances']
+        mutation_time_seen = mutation_nodes['first_seen']
 
-    #graph_json(genotypes, "tree-end.json", sort_keys = True)
+    #graph_write_json(genotypes, "tree-end.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
-
+    return(mutation_nodes)
 # -----------------------------------------------------------------------------
 
+'''
 if __name__ == "__main__":
     run_simulation(num_generations = NUM_CYCLES)
+'''
 
+
+mutation_nodes = run_simulation(num_generations = NUM_CYCLES)
+ms = (mutation_nodes['abundances'])
+mt = (mutation_nodes['first_seen'])
+
+xvec = range(0, NUM_CYCLES)
+yvec = [0 for i in range(0, NUM_CYCLES)]
+for i_mutant in range(len(ms)):
+    yvec = [0 for i in range(0, NUM_CYCLES)]
+    abundances = ms[i_mutant]
+    first_seen = mt[i_mutant]
+    for j in range(len(abundances)):
+        yvec[j+first_seen] = abundances[j]
+        
+        pyplot.plot(xvec, yvec)
+
+pyplot.show()
