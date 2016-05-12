@@ -4,7 +4,7 @@ from numpy.random import exponential as nexp
 from scipy.special import gammainc as gamma
 from six.moves import range as srange
 
-def mutate_multiples(p, mutation_rate, counter):
+def mutate_multiples(p, mutation_rate, genotype_counter):
     """Mutate individuals in the population"""
 
     assert(mutation_rate >= 0)
@@ -22,8 +22,8 @@ def mutate_multiples(p, mutation_rate, counter):
         for parent_id in np.nonzero(num_k_mutants)[0]:
             for _mutant in srange(num_k_mutants[parent_id]):
                 mu_effect = nexp(scale = 0.01, size = k)
-                p.add_vertex(name = next(counter), abundance = 1,
-                             abundances = [1],
+                p.add_vertex(name = next(genotype_counter), abundance = 1,
+                             abundances = [1], total_abundance = 1,
                              depth = p.vs[parent_id]['depth'] + 1,
                              fitness = p.vs[parent_id]['fitness'] + np.prod(1 + mu_effect),
                              fitness_diff = mu_effect.tolist(), frequency = 0,

@@ -40,13 +40,15 @@ def create_population(population_size, counter, base_fitness = 1.0):
                                      'depth': None,
                                      'abundance': 0,
                                      'abundances': [0],
+                                     'total_abundance': 0,
                                      'frequency': 0,
                                      'max_frequency': 0,
                                      'fitness': 0,
                                      'fitness_diff': [0]})
 
     p.add_vertex(name = next(counter), depth = 0, abundance = population_size,
-                 abundances = [population_size], frequency = 1.0,
+                 abundances = [population_size],
+                 total_abundance = population_size, frequency = 1.0,
                  max_frequency = 1.0, fitness = base_fitness,
                  fitness_diff = [0])
     return p
@@ -81,6 +83,7 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
 
             p.add_vertex(name = next(genotype_counter),
                          abundance = 1, abundances = [1],
+                         total_abundance = 1,
                          depth = p.vs[parent_id]['depth'] + 1,
                          fitness = p.vs[parent_id]['fitness'] + mu_effect,
                          fitness_diff = [mu_effect], frequency = 0,
@@ -104,6 +107,16 @@ def prune_frequency(p, min_frequency):
     return p
 
 
+def get_total_abundances(v):
+    """Get the abundance of a vertex and all of its descendants"""
+
+    v['total_abundance'] = v['abundance']
+
+    for child in v.neighbors(mode = "OUT"):
+        v['total_abundance'] += get_total_abundances(v = child)
+
+    return v['total_abundance']
+
 # -----------------------------------------------------------------------------
 
 def graph_write_json(g, filename, **kwargs):
@@ -119,6 +132,7 @@ def graph_write_json(g, filename, **kwargs):
                                      'depth': v['depth'],
                                      'abundance': int(v['abundance']),
                                      'abundances': v['abundances'],
+                                     'total_abundance': v['total_abundance'],
                                      'frequency': v['frequency'],
                                      'max_frequency': v['max_frequency'],
                                      'fitness': v['fitness'],
@@ -137,7 +151,7 @@ def graph_write_json(g, filename, **kwargs):
 def run_simulation(num_generations):
 
     outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
-                             fieldnames = ['Generation', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'Frequency'])
+                             fieldnames = ['Generation', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'TotAbundance', 'Frequency'])
     outfile.writeheader()
 
     genotype_counter = itertools.count(0)
@@ -150,17 +164,20 @@ def run_simulation(num_generations):
         #print("Generation {c}. Max depth: {d}".format(c = gen, d = max(genotypes.vs['depth'])))
         print("Gen {g}".format(g = gen))
 
-        for extant in genotypes.vs.select(lambda v: v['abundance'] > 0):
+        for g in genotypes.vs.select(lambda v: v['total_abundance'] > 0):
             outfile.writerow({'Generation': gen,
-                              'Genotype': extant.index,
-                              'Depth': extant['depth'],
-                              'Fitness': extant['fitness'],
-                              'Abundance': extant['abundance'],
-                              'Frequency': extant['frequency']})
+                              'Genotype': g.index,
+                              'Depth': g['depth'],
+                              'Fitness': g['fitness'],
+                              'Abundance': g['abundance'],
+                              'TotAbundance': g['total_abundance'],
+                              'Frequency': g['frequency']})
 
         reproduce(genotypes, population_size = POPSIZE)
-        mutate_multiples(genotypes, mutation_rate = MUTATION_RATE, counter = genotype_counter)
+        #mutate_multiples(genotypes, mutation_rate = MUTATION_RATE, genotype_counter = genotype_counter)
+        mutate_bdc(genotypes, mutation_rate = MUTATION_RATE, genotype_counter = genotype_counter)
         prune_frequency(genotypes, min_frequency = THRESH_FREQ)
+        get_total_abundances(v = genotypes.vs[0])
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None):
             v['abundances'].append(int(v['abundance']))
@@ -175,7 +192,7 @@ def run_simulation(num_generations):
         # For writing the tree at every cycke
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
-    graph_write_json(genotypes, "tree-end.json", sort_keys = True)
+    #graph_write_json(genotypes, "tree-end.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
 
 # -----------------------------------------------------------------------------

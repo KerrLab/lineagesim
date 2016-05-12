@@ -13,6 +13,9 @@ NUM_CYCLES = 1000
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
 THRESH_FREQ = 0.01
+DO_DFS = True
+
+#np.random.seed(90210)
 
 
 class Population(object):
@@ -35,6 +38,7 @@ class Population(object):
                                                       'depth': None,
                                                       'abundance': 0,
                                                       'abundances': [0],
+                                                      'total_abundance': 0,
                                                       'frequency': 0,
                                                       'max_frequency': 0,
                                                       'fitness': 0,
@@ -43,6 +47,7 @@ class Population(object):
         self.genotypes.add_vertex(name = next(self.genotype_counter), depth = 0,
                                   abundance = population_size,
                                   abundances = [population_size],
+                                  total_abundance = population_size,
                                   frequency = 1.0, max_frequency = 1.0,
                                   fitness = base_fitness,
                                   fitness_diff = [0])
@@ -84,6 +89,7 @@ class Population(object):
 
                 self.genotypes.add_vertex(name = next(self.genotype_counter),
                                           abundance = 1, abundances = [1],
+                                          total_abundance = 1,
                                           depth = self.genotypes.vs[parent_id]['depth'] + 1,
                                           fitness = self.genotypes.vs[parent_id]['fitness'] + mu_effect,
                                           fitness_diff = [mu_effect],
@@ -104,12 +110,30 @@ class Population(object):
         self.genotypes.vs.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
 
     def evolve(self, time, mutation_rate, prune_min_freq):
+        """Evolve the population for one generation"""
         self.set_seen_times(time = time)
         self.reproduce()
         self.mutate(mutation_rate = mutation_rate)
         self.set_frequencies()
         self.prune(min_frequency = prune_min_freq)
         self.generations += 1
+
+
+    def get_total_abundances(v):
+        """Get the abundance of a vertex and all of its descendants"""
+
+        v['total_abundance'] = v['abundance']
+
+        for child in v.neighbors(mode = "OUT"):
+            v['total_abundance'] += get_total_abundances(v = child)
+
+        return v['total_abundance']
+
+
+    def update_total_abundances(self):
+        """TODO"""
+        # Tis doesn't work. I'd imagine it doesn't update the self.genotypes object.
+        get_total_abundances(self.genotypes.vs[0])
 
     def write_gml(self, filename, **kwargs):
         """Write a GML file containing the current state of the population"""
@@ -121,19 +145,20 @@ class Population(object):
 
     def write_csvdata(self, outfile, time):
         """Write information about each genotype to a CSV file"""
-        for extant in self.genotypes.vs.select(lambda v: v['abundance'] > 0):
+        for g in self.genotypes.vs.select(lambda v: v['total_abundance'] > 0):
             outfile.writerow({'Generation': time,
-                              'Genotype': extant.index,
-                              'Depth': extant['depth'],
-                              'Fitness': extant['fitness'],
-                              'Abundance': extant['abundance'],
-                              'Frequency': extant['frequency']})
+                              'Genotype': g.index,
+                              'Depth': g['depth'],
+                              'Fitness': g['fitness'],
+                              'Abundance': g['abundance'],
+                              'TotAbundance': g['total_abundance'],
+                              'Frequency': g['frequency']})
 
 # ---------------
 
 def run_simulation(num_generations, outfile):
     outfile = csv.DictWriter(open(outfile, 'w'),
-                             fieldnames = ['Generation', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'Frequency'])
+                             fieldnames = ['Generation', 'Genotype', 'Depth', 'Fitness', 'Abundance', 'TotAbundance', 'Frequency'])
     outfile.writeheader()
 
     p = Population(population_size = POPSIZE)
@@ -149,3 +174,4 @@ def run_simulation(num_generations, outfile):
 
 if __name__ == "__main__":
     run_simulation(num_generations = NUM_CYCLES, outfile = OUTFILENAME)
+
