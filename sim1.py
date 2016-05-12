@@ -132,7 +132,7 @@ def graph_write_json(g, filename, **kwargs):
                                      'depth': v['depth'],
                                      'abundance': int(v['abundance']),
                                      'abundances': v['abundances'],
-                                     'total_abundance': v['total_abundance'],
+                                     'total_abundance': int(v['total_abundance']),
                                      'frequency': v['frequency'],
                                      'max_frequency': v['max_frequency'],
                                      'fitness': v['fitness'],
@@ -192,7 +192,7 @@ def run_simulation(num_generations):
         # For writing the tree at every cycke
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
-    #graph_write_json(genotypes, "tree-end.json", sort_keys = True)
+    graph_write_json(genotypes, "tree-end.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
 
 # -----------------------------------------------------------------------------
