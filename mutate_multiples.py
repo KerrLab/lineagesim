@@ -26,7 +26,7 @@ def mutate_multiples(p, mutation_rate, counter):
                              abundances = [1],
                              depth = p.vs[parent_id]['depth'] + 1,
                              fitness = p.vs[parent_id]['fitness'] + np.prod(1 + mu_effect),
-                             fitness_diff = [mu_effect], frequency = 0,
+                             fitness_diff = mu_effect.tolist(), frequency = 0,
                              max_frequency = 0)
                 p.add_edge(source = parent_id, target = p.vcount() - 1,
                            fitness_effect = np.prod(1 + mu_effect))

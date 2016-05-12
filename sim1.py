@@ -106,7 +106,7 @@ def prune_frequency(p, min_frequency):
 
 # -----------------------------------------------------------------------------
 
-def graph_json(g, filename, **kwargs):
+def graph_write_json(g, filename, **kwargs):
     """Write the graph to JSON file"""
     d = {}
     d['attributes'] = {a:g[a] for a in g.attributes()}
@@ -123,6 +123,7 @@ def graph_json(g, filename, **kwargs):
                                      'max_frequency': v['max_frequency'],
                                      'fitness': v['fitness'],
                                      'fitness_diff': v['fitness_diff']}} for v in g.vs]
+
     d['edges'] = [{'index': e.index,
                    'source': e.source,
                    'target': e.target,
@@ -174,7 +175,7 @@ def run_simulation(num_generations):
         # For writing the tree at every cycke
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
-    #graph_json(genotypes, "tree-end.json", sort_keys = True)
+    graph_write_json(genotypes, "tree-end.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
 
 # -----------------------------------------------------------------------------
