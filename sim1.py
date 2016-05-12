@@ -9,6 +9,7 @@ import numpy as np
 from numpy.random import binomial as nbinom
 from numpy.random import multinomial as nmultinom
 from numpy.random import normal as nnormal
+from numpy.random import exponential as nexp
 from six.moves import range as srange
 
 from matplotlib import pyplot 
@@ -17,7 +18,7 @@ POPSIZE = int(1e6)
 NUM_CYCLES = 500
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
-THRESH_FREQ = 2
+THRESH_FREQ = 0.001
 
 #np.random.seed(90210)
 
@@ -88,16 +89,18 @@ def mutate_bdc(p, mutation_rate, node_counter):
         for _mutant in srange(num_mutants[parent_id]):
 
             # TODO: handle mutation effect sizes properly
-            mu_effect = nnormal(loc = 0.0, scale = 0.1)
+            #mu_effect = nnormal(loc = 0.0, scale = 0.1)
 
+            mu_effect = nexp(scale=0.1)
             #add mutation to p
             new_mut_id = next(node_counter)
 
             p.add_vertex(name=new_mut_id,
                          genotype_node = False,
                          fitness = mu_effect,
-                         frequency=1.0/p['population_size'],
-                         abundances=[])
+                         frequency=0,
+                         abundances=[],
+                         max_frequency=0)
 
             new_genotype_id = next(node_counter)
 
@@ -139,9 +142,9 @@ def prune_frequency(p, min_frequency):
     genotype_nodes.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
     return p
 
-def prune_mutations(p):
+def prune_mutations(p, min_frequency):
     mutation_nodes = p.vs.select(genotype_node_eq=False)
-    mutation_nodes.select(lambda v: v['frequency']==0 and v['first_seen'] is not None).delete()
+    mutation_nodes.select(lambda v: v['frequency']==0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
     return p
 
 
@@ -234,7 +237,11 @@ def run_simulation(num_generations):
             #abusing the verticies def.
             m_node['abundances'].append(m_node['frequency'])
 
-        prune_mutations(genotypes)
+        for v in mutation_nodes.select(lambda v: v['frequency'] > 0 and v['first_seen'] is not None and v['frequency'] > v['max_frequency']):
+            v['max_frequency'] = v['frequency']
+
+
+        prune_mutations(genotypes, min_frequency = THRESH_FREQ)
 
         #reset mutation nodes after pruning
         mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
@@ -257,7 +264,7 @@ if __name__ == "__main__":
     run_simulation(num_generations = NUM_CYCLES)
 '''
 
-
+NUM_CYCLES = 500
 mutation_nodes = run_simulation(num_generations = NUM_CYCLES)
 ms = (mutation_nodes['abundances'])
 mt = (mutation_nodes['first_seen'])
@@ -270,7 +277,7 @@ for i_mutant in range(len(ms)):
     first_seen = mt[i_mutant]
     for j in range(len(abundances)):
         yvec[j+first_seen] = abundances[j]
-        
-        pyplot.plot(xvec, yvec)
+
+    pyplot.plot(xvec, yvec)
 
 pyplot.show()
