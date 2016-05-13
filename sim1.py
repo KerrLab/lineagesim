@@ -5,6 +5,7 @@ import itertools
 import json
 
 import igraph
+import sys
 import numpy as np
 from numpy.random import binomial as nbinom
 from numpy.random import multinomial as nmultinom
@@ -15,12 +16,12 @@ from six.moves import range as srange
 from matplotlib import pyplot 
 
 POPSIZE = int(1e6)
-NUM_CYCLES = 500
+NUM_CYCLES = 1000
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
-THRESH_FREQ = 0.001
+THRESH_FREQ = 0.01
 
-#np.random.seed(90210)
+np.random.seed(90210)
 
 # current abundances: [v['abundances'][-1] for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None)]
 # g.vs(abundance_gt=0)
@@ -47,7 +48,8 @@ def create_population(population_size, counter, base_fitness = 1.0):
                                      'fitness': 0,
                                      'mutation_node' : None,
                                      'fitness_diff': [0],
-                                     'w_over_wbars' : [1]})
+                                     'w_over_wbars' : [1]},
+                     edge_attrs = {'relational':True})
 
     p.add_vertex(name = next(counter), depth = 0, abundance = population_size,
                  abundances = [population_size], frequency = 1.0,
@@ -120,9 +122,7 @@ def mutate_bdc(p, mutation_rate, node_counter):
 
             #add mutational neighbors from parent to offspring vertex
             mutational_neighbors = p.vs[p.neighbors(genotype_nodes[parent_id])].select(genotype_node_eq=False)
-            for mutational_node in mutational_neighbors:
-                p.add_edge(source=p.vcount() - 1, target=mutational_node, relational=False)
-
+            p.add_edges(zip([p.vcount()-1]*len(mutational_neighbors), mutational_neighbors))
     return p
 
 
@@ -197,7 +197,11 @@ def run_simulation(num_generations):
         genotype_nodes.select(lambda v: v['abundance'] > 0)['last_seen'] = gen
 
         #print("Generation {c}. Max depth: {d}".format(c = gen, d = max(genotypes.vs['depth'])))
-        print("Gen {g}".format(g = gen))
+        #print("Gen {g}".format(g = gen))
+        sys.stdout.write("\r")
+        pct = float(gen) / num_generations
+        sys.stdout.write("[%-40s] %d%%" % ('='* int(40 * pct), (pct * 100)))
+        sys.stdout.flush()
 
         for extant in genotype_nodes.select(lambda v: v['abundance'] > 0):
             outfile.writerow({'Generation': gen,
@@ -264,11 +268,11 @@ if __name__ == "__main__":
     run_simulation(num_generations = NUM_CYCLES)
 '''
 
-NUM_CYCLES = 500
+NUM_CYCLES = 1000
 mutation_nodes = run_simulation(num_generations = NUM_CYCLES)
 ms = (mutation_nodes['abundances'])
 mt = (mutation_nodes['first_seen'])
-
+'''
 xvec = range(0, NUM_CYCLES)
 yvec = [0 for i in range(0, NUM_CYCLES)]
 for i_mutant in range(len(ms)):
@@ -281,3 +285,4 @@ for i_mutant in range(len(ms)):
     pyplot.plot(xvec, yvec)
 
 pyplot.show()
+'''
