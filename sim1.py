@@ -15,9 +15,15 @@ from six.moves import range as srange
 
 from matplotlib import pyplot 
 
-POPSIZE = int(1e6)
-NUM_CYCLES = 1000
-MUTATION_RATE = 1e-6
+
+import cProfile, pstats
+from io import StringIO
+
+
+
+POPSIZE = int(1e5)
+NUM_CYCLES = 10
+MUTATION_RATE = 1e-3
 OUTFILENAME = "results.csv"
 THRESH_FREQ = 0.01
 
@@ -252,12 +258,6 @@ def run_simulation(num_generations):
 
         mutation_nodes.select(lambda v: v['frequency'] > 0)['last_seen'] = gen
 
-
-        # For writing the tree at every cycke
-        #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
-        mutation_frequencies = mutation_nodes['abundances']
-        mutation_time_seen = mutation_nodes['first_seen']
-
     #graph_write_json(genotypes, "tree-end.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
     return(mutation_nodes)
@@ -268,10 +268,23 @@ if __name__ == "__main__":
     run_simulation(num_generations = NUM_CYCLES)
 '''
 
-NUM_CYCLES = 1000
+pr = cProfile.Profile()
+
+pr.enable()
+# ... do something ...
+
+NUM_CYCLES = 100
 mutation_nodes = run_simulation(num_generations = NUM_CYCLES)
 ms = (mutation_nodes['abundances'])
 mt = (mutation_nodes['first_seen'])
+
+pr.disable()
+
+s = StringIO()
+sortby = 'ncalls'
+ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+ps.print_stats()
+print (s.getvalue())
 '''
 xvec = range(0, NUM_CYCLES)
 yvec = [0 for i in range(0, NUM_CYCLES)]
