@@ -21,11 +21,11 @@ from io import StringIO
 
 
 
-POPSIZE = int(1e5)
-NUM_CYCLES = 10
-MUTATION_RATE = 1e-3
+POPSIZE = int(1e6)
+NUM_CYCLES = 300
+MUTATION_RATE = 1e-5
 OUTFILENAME = "results.csv"
-THRESH_FREQ = 0.01
+THRESH_FREQ = 0.001
 
 np.random.seed(90210)
 
@@ -273,7 +273,6 @@ pr = cProfile.Profile()
 pr.enable()
 # ... do something ...
 
-NUM_CYCLES = 100
 mutation_nodes = run_simulation(num_generations = NUM_CYCLES)
 ms = (mutation_nodes['abundances'])
 mt = (mutation_nodes['first_seen'])
@@ -285,7 +284,8 @@ sortby = 'ncalls'
 ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
 ps.print_stats()
 print (s.getvalue())
-'''
+
+
 xvec = range(0, NUM_CYCLES)
 yvec = [0 for i in range(0, NUM_CYCLES)]
 for i_mutant in range(len(ms)):
@@ -298,4 +298,3 @@ for i_mutant in range(len(ms)):
     pyplot.plot(xvec, yvec)
 
 pyplot.show()
-'''
