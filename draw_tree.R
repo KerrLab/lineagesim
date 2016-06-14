@@ -4,7 +4,7 @@ library(igraph)
 
 edge_colors <- c("#ED665D", "#67BF5C")
 vertex_shapes <- c("circle", "square")
-popsize <- 1e6
+popsize <- 1e7
 fixation_threshold <- 1 - 1e-4
 
 g <- read_graph("tree-end.gml", format="gml")

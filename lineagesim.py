@@ -14,11 +14,12 @@ from six.moves import range as srange
 
 from mutate_multiples import mutate_multiples
 
-POPSIZE = int(1e6)
+POPSIZE = int(1e7)
 NUM_CYCLES = 1000
-MUTATION_RATE = 1e-6
+MUTATION_RATE = 1e-5
 OUTFILENAME = "results.csv"
-THRESH_FREQ = 0.001
+THRESH_FREQ = 0.0001
+#THRESH_FREQ = (POPSIZE * MUTATION_RATE) / POPSIZE
 FIXATION_THRESH = 1 - 1e-4
 
 #np.random.seed(90210)
@@ -97,7 +98,7 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
                          depth = p.vs[parent_id]['depth'] + 1,
                          fitness = p.vs[parent_id]['fitness'] + mu_effect,
                          fitness_diff = [mu_effect],
-                         frequency = 1 / POPSIZE,
+                         frequency = 1 / p['population_size'],
                          fixation_time = -1,
                          max_frequency = 0)
             p.add_edge(source = parent_id,
@@ -216,7 +217,7 @@ def run_simulation(num_generations):
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None and v['frequency'] > v['max_frequency']):
             v['max_frequency'] = v['frequency']
 
-        genotypes.vs.select(lambda v: v['fixation_time'] == -1 and (float(v['total_abundance']) / POPSIZE) >= FIXATION_THRESH)['fixation_time'] = gen
+        genotypes.vs.select(lambda v: v['fixation_time'] == -1 and (float(v['total_abundance']) / genotypes['population_size']) >= FIXATION_THRESH)['fixation_time'] = gen
 
         # For writing the tree at every cycke
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
