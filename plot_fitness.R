@@ -17,4 +17,4 @@ pZ <- ggplot(data = vd, aes(x = firstseen, y = fitness)) +
     geom_segment(aes(xend = lastseen, yend = fitness), alpha = 0.1) +
     labs(x = "Time", y = "Fitness") +
     theme_bdc_grey()
-ggsave_golden("lineage_fitness.pdf", plot = gg_rescale_golden(pZ))
+ggsave_golden("fig_lineage_fitness.pdf", plot = gg_rescale_golden(pZ))

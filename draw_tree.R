@@ -16,6 +16,6 @@ E(g)$color <- edge_colors[as.numeric(E(g)$fitnesseffect >= 0) + 1]
 
 
 #png(filename = "~/TEST1.png", res = 150, width = 6000, height = 6000, type="quartz")
-pdf(file = "lineage_tree.pdf", width=30, height=30)
+pdf(file = "fig_lineage_tree.pdf", width=30, height=30)
 plot.igraph(g, layout=layout_as_tree(g), vertex.label.cex = 1.3)
 dev.off()

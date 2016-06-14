@@ -15,7 +15,7 @@ from six.moves import range as srange
 from mutate_multiples import mutate_multiples
 
 POPSIZE = int(1e6)
-NUM_CYCLES = 10000
+NUM_CYCLES = 1000
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
 THRESH_FREQ = 0.001
@@ -39,6 +39,7 @@ def create_population(population_size, counter, base_fitness = 1.0):
                                     'generations': 0},
                      vertex_attrs = {'first_seen': None,
                                      'last_seen': None,
+                                     'lineage_last_seen': None,
                                      'depth': None,
                                      'abundance': 0,
                                      'abundances': [0],
@@ -96,7 +97,7 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
                          depth = p.vs[parent_id]['depth'] + 1,
                          fitness = p.vs[parent_id]['fitness'] + mu_effect,
                          fitness_diff = [mu_effect],
-                         frequency = 0,
+                         frequency = 1 / POPSIZE,
                          fixation_time = -1,
                          max_frequency = 0)
             p.add_edge(source = parent_id,
@@ -115,6 +116,7 @@ def dilute(p, dilution_prob):
 
 def prune_frequency(p, min_frequency):
     """Delete extinct leaf nodes that did not reach a given frequency"""
+    # Could also prune based on total_abundance and max_frequency
     p.vs.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
     return p
 
@@ -141,6 +143,7 @@ def graph_write_json(g, filename, **kwargs):
                       'attributes': {'name': v['name'],
                                      'first_seen': v['first_seen'],
                                      'last_seen': v['last_seen'],
+                                     'lineage_last_seen': v['lineage_last_seen'],
                                      'depth': v['depth'],
                                      'abundance': int(v['abundance']),
                                      'abundances': v['abundances'],
@@ -164,7 +167,7 @@ def graph_write_json(g, filename, **kwargs):
 def run_simulation(num_generations):
 
     outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
-                             fieldnames = ['Generation', 'Genotype', 'FirstSeen', 'LastSeen', 'Depth', 'Fitness', 'FitnessDiff', 'Abundance', 'TotAbundance', 'Frequency', 'FixationTime'])
+                             fieldnames = ['Generation', 'Genotype', 'FirstSeen', 'LastSeen', 'LineageLastSeen', 'Depth', 'Fitness', 'FitnessDiff', 'Abundance', 'TotAbundance', 'Frequency', 'FixationTime'])
     outfile.writeheader()
 
     genotype_counter = itertools.count(0)
@@ -173,6 +176,7 @@ def run_simulation(num_generations):
     for gen in srange(num_generations):
         genotypes.vs.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
         genotypes.vs.select(lambda v: v['abundance'] > 0)['last_seen'] = gen
+        genotypes.vs.select(lambda v: v['total_abundance'] > 0)['lineage_last_seen'] = gen
 
         #print("Generation {c}. Max depth: {d}".format(c = gen, d = max(genotypes.vs['depth'])))
         #print("Gen {g}".format(g = gen))
@@ -186,6 +190,7 @@ def run_simulation(num_generations):
                               'Genotype': g['name'],
                               'FirstSeen': g['first_seen'],
                               'LastSeen': g['last_seen'],
+                              'LineageLastSeen': g['lineage_last_seen'],
                               'Depth': g['depth'],
                               'Fitness': g['fitness'],
                               'FitnessDiff': sum(g['fitness_diff']),
@@ -197,6 +202,7 @@ def run_simulation(num_generations):
         reproduce(genotypes, population_size = POPSIZE)
         #mutate_multiples(genotypes, mutation_rate = MUTATION_RATE, genotype_counter = genotype_counter)
         mutate_bdc(genotypes, mutation_rate = MUTATION_RATE, genotype_counter = genotype_counter)
+
         prune_frequency(genotypes, min_frequency = THRESH_FREQ)
         get_total_abundances(v = genotypes.vs[0])
 
