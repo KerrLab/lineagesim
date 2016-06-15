@@ -22,12 +22,17 @@ def mutate_multiples(p, mutation_rate, genotype_counter):
         for parent_id in np.nonzero(num_k_mutants)[0]:
             for _mutant in srange(num_k_mutants[parent_id]):
                 mu_effect = nexp(scale = 0.01, size = k)
-                p.add_vertex(name = next(genotype_counter), abundance = 1,
-                             abundances = [1], total_abundance = 1,
+                p.add_vertex(name = next(genotype_counter),
+                             abundance = 1,
+                             abundances = [1],
+                             total_abundance = 1,
                              depth = p.vs[parent_id]['depth'] + 1,
                              fitness = p.vs[parent_id]['fitness'] + np.prod(1 + mu_effect),
-                             fitness_effects = mu_effect.tolist(), frequency = 0,
-                             max_frequency = 0)
+                             fitness_effects = mu_effect.tolist(),
+                             fitness_diff = np.prod(1 + mu_effect),
+                             frequency = 0,
+                             max_frequency = 0,
+                             fixation_time = -1)
                 p.add_edge(source = parent_id, target = p.vcount() - 1,
                            fitness_effect = np.prod(1 + mu_effect))
 

@@ -106,7 +106,7 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
                          max_frequency = 0)
             p.add_edge(source = parent_id,
                        target = p.vcount() - 1,
-                       fitness_diff = mu_effect)
+                       fitness_effect = mu_effect)
 
     return p
 
@@ -228,7 +228,7 @@ def run_simulation(num_generations):
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
     graph_write_json(genotypes, "tree-end.json", sort_keys = True)
-    #genotypes.write_gml("tree-end.gml")
+    genotypes.write_gml("tree-end.gml")
 
 # -----------------------------------------------------------------------------
 
