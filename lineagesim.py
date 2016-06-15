@@ -49,7 +49,8 @@ def create_population(population_size, counter, base_fitness = 1.0):
                                      'max_frequency': 0,
                                      'fixation_time': -1,
                                      'fitness': 0,
-                                     'fitness_diff': [0]})
+                                     'fitness_effects': [0],
+                                     'fitness_diff': 0})
 
     p.add_vertex(name = next(counter),
                  depth = 0,
@@ -60,7 +61,8 @@ def create_population(population_size, counter, base_fitness = 1.0):
                  max_frequency = 1.0,
                  fixation_time = 0,
                  fitness = base_fitness,
-                 fitness_diff = [0])
+                 fitness_effects = [0],
+                 fitness_diff = 0)
     return p
 
 
@@ -97,13 +99,14 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
                          total_abundance = 1,
                          depth = p.vs[parent_id]['depth'] + 1,
                          fitness = p.vs[parent_id]['fitness'] + mu_effect,
-                         fitness_diff = [mu_effect],
+                         fitness_effects = [mu_effect],
+                         fitness_diff = mu_effect,
                          frequency = 1 / p['population_size'],
                          fixation_time = -1,
                          max_frequency = 0)
             p.add_edge(source = parent_id,
                        target = p.vcount() - 1,
-                       fitness_effect = mu_effect)
+                       fitness_diff = mu_effect)
 
     return p
 
@@ -153,6 +156,7 @@ def graph_write_json(g, filename, **kwargs):
                                      'max_frequency': v['max_frequency'],
                                      'fixation_time': v['fixation_time'],
                                      'fitness': v['fitness'],
+                                     'fitness_effects': v['fitness_effects'],
                                      'fitness_diff': v['fitness_diff']}} for v in g.vs]
 
     d['edges'] = [{'index': e.index,
@@ -168,7 +172,7 @@ def graph_write_json(g, filename, **kwargs):
 def run_simulation(num_generations):
 
     outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
-                             fieldnames = ['Generation', 'Genotype', 'FirstSeen', 'LastSeen', 'LineageLastSeen', 'Depth', 'Fitness', 'FitnessDiff', 'Abundance', 'TotAbundance', 'Frequency', 'FixationTime'])
+                             fieldnames = ['Generation', 'Genotype', 'FirstSeen', 'LastSeen', 'LineageLastSeen', 'Depth', 'Fitness', 'FitnessEffects', 'FitnessDiff', 'Abundance', 'TotAbundance', 'Frequency', 'FixationTime'])
     outfile.writeheader()
 
     genotype_counter = itertools.count(0)
@@ -194,7 +198,8 @@ def run_simulation(num_generations):
                               'LineageLastSeen': g['lineage_last_seen'],
                               'Depth': g['depth'],
                               'Fitness': g['fitness'],
-                              'FitnessDiff': sum(g['fitness_diff']),
+                              'FitnessEffects': sum(g['fitness_effects']),
+                              'FitnessDiff': g['fitness_diff'],
                               'Abundance': g['abundance'],
                               'TotAbundance': g['total_abundance'],
                               'Frequency': g['frequency'],
@@ -219,11 +224,11 @@ def run_simulation(num_generations):
 
         genotypes.vs.select(lambda v: v['fixation_time'] == -1 and (float(v['total_abundance']) / genotypes['population_size']) >= FIXATION_THRESH)['fixation_time'] = gen
 
-        # For writing the tree at every cycke
+        # For writing the tree at every cycle
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
     graph_write_json(genotypes, "tree-end.json", sort_keys = True)
-    genotypes.write_gml("tree-end.gml")
+    #genotypes.write_gml("tree-end.gml")
 
 # -----------------------------------------------------------------------------
 
