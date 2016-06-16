@@ -247,6 +247,7 @@ def run_simulation(args=parse_arguments()):
                                          'Abundance',
                                          'TotAbundance',
                                          'Frequency',
+                                         'MaxFrequency',
                                          'FixationTime'])
     outfile.writeheader()
 
@@ -277,6 +278,7 @@ def run_simulation(args=parse_arguments()):
                               'Abundance': g['abundance'],
                               'TotAbundance': g['total_abundance'],
                               'Frequency': g['frequency'],
+                              'MaxFrequency': g['max_frequency'],
                               'FixationTime': g['fixation_time']})
 
         reproduce(population=genotypes, population_size=args.population_size)
