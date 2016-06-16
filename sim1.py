@@ -21,9 +21,9 @@ from io import StringIO
 
 
 
-POPSIZE = int(1e6)
-NUM_CYCLES = 300
-MUTATION_RATE = 1e-5
+POPSIZE = int(1e7)
+NUM_CYCLES = 100
+MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
 THRESH_FREQ = 0.001
 
@@ -40,7 +40,7 @@ np.random.seed(90210)
 # Create the population
 def create_population(population_size, counter, base_fitness = 1.0):
     """Create the population"""
-    p = igraph.Graph(directed = False,
+    p = igraph.Graph(directed = True,
                      graph_attrs = {'population_size': population_size,
                                     'generations': 0},
                      vertex_attrs = {'genotype_node': None,
@@ -60,7 +60,7 @@ def create_population(population_size, counter, base_fitness = 1.0):
     p.add_vertex(name = next(counter), depth = 0, abundance = population_size,
                  abundances = [population_size], frequency = 1.0,
                  max_frequency = 1.0, fitness = base_fitness,
-                 fitness_diff = [0], w_over_wbars = [1], genotype_node = True)
+                 fitness_diff = [0], w_over_wbars = [1], genotype_node = True, first_seen=0)
     return p
 
 
@@ -83,7 +83,7 @@ def reproduce(p, population_size):
     return p
 
 
-def mutate_bdc(p, mutation_rate, node_counter):
+def mutate_bdc(p, mutation_rate, node_counter, gen):
     """Mutate individuals in the population"""
 
     assert(mutation_rate >= 0 and mutation_rate <= 1)
@@ -108,7 +108,8 @@ def mutate_bdc(p, mutation_rate, node_counter):
                          fitness = mu_effect,
                          frequency=0,
                          abundances=[],
-                         max_frequency=0)
+                         max_frequency=0,
+                         first_seen=gen)
 
             new_genotype_id = next(node_counter)
 
@@ -116,11 +117,11 @@ def mutate_bdc(p, mutation_rate, node_counter):
                          abundance = 1, abundances = [1],
                          depth = genotype_nodes[parent_id]['depth'] + 1,
                          fitness = genotype_nodes[parent_id]['fitness'] + mu_effect,
-                         fitness_diff = [mu_effect], frequency = 0,
-                         max_frequency = 0, genotype_node = True)
+                         fitness_diff = [mu_effect], frequency = 1,
+                         max_frequency = 0, genotype_node = True, first_seen=gen)
             
             #add edge to new mutation
-            p.add_edge(source = p.vcount() - 1, target = p.vcount() - 2, relational=False)
+            p.add_edge(source = p.vcount() - 2, target = p.vcount() - 1, relational=False)
 
             #add lineage edge between parent and offspring
             p.add_edge(source = genotype_nodes[parent_id], target = p.vcount() - 1,
@@ -128,9 +129,8 @@ def mutate_bdc(p, mutation_rate, node_counter):
 
             #add mutational neighbors from parent to offspring vertex
             mutational_neighbors = p.vs[p.neighbors(genotype_nodes[parent_id])].select(genotype_node_eq=False)
-            p.add_edges(zip([p.vcount()-1]*len(mutational_neighbors), mutational_neighbors))
+            p.add_edges(zip(mutational_neighbors, [p.vcount()-1]*len(mutational_neighbors)))
     return p
-
 
 def dilute(p, dilution_prob):
     """Thin the population"""
@@ -145,7 +145,9 @@ def dilute(p, dilution_prob):
 def prune_frequency(p, min_frequency):
     """Delete extinct leaf nodes that did not reach a given frequency"""
     genotype_nodes = p.vs.select(genotype_node_eq=True)
-    genotype_nodes.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
+    prunable_nodes = genotype_nodes.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency)
+    print(len(prunable_nodes))
+    prunable_nodes.delete()
     return p
 
 def prune_mutations(p, min_frequency):
@@ -199,7 +201,6 @@ def run_simulation(num_generations):
     for gen in srange(num_generations):
         genotype_nodes = genotypes.vs.select(genotype_node_eq=True)
 
-        genotype_nodes.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
         genotype_nodes.select(lambda v: v['abundance'] > 0)['last_seen'] = gen
 
         #print("Generation {c}. Max depth: {d}".format(c = gen, d = max(genotypes.vs['depth'])))
@@ -218,8 +219,7 @@ def run_simulation(num_generations):
                               'Frequency': extant['frequency']})
 
         reproduce(genotypes, population_size = POPSIZE)
-        mutate_bdc(genotypes, MUTATION_RATE, node_counter)
-        prune_frequency(genotypes, min_frequency = THRESH_FREQ)
+        mutate_bdc(genotypes, MUTATION_RATE, node_counter, gen)
 
         #update genotype subset after mutations...
         #TODO: is this required?
@@ -232,15 +232,12 @@ def run_simulation(num_generations):
         genotypes['population_size'] = int(sum(genotype_nodes['abundance']))
         genotype_nodes['frequency'] = genotype_nodes['abundance'] / sum(genotype_nodes['abundance'])
 
-
-
-
         for v in genotype_nodes.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None and v['frequency'] > v['max_frequency']):
             v['max_frequency'] = v['frequency']
 
 
         mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
-        mutation_nodes.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
+        #mutation_nodes.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
 
         for m_node in mutation_nodes:
             m_node['frequency'] = np.sum(genotypes.vs[genotypes.neighbors(m_node)]['frequency'])
@@ -252,6 +249,9 @@ def run_simulation(num_generations):
 
 
         prune_mutations(genotypes, min_frequency = THRESH_FREQ)
+        
+        #TODO: This line causes inconsistences! Bug! Ahhh! 
+        prune_frequency(genotypes, min_frequency = THRESH_FREQ)
 
         #reset mutation nodes after pruning
         mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
