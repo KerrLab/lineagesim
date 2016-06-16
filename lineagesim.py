@@ -29,57 +29,57 @@ OUTFILENAME = "results.csv"
 # Create the population
 def create_population(population_size, counter, base_fitness=1.0):
     """Create the population"""
-    p = igraph.Graph(directed=True,
-                     graph_attrs={'population_size': population_size,
-                                  'generations': 0},
-                     vertex_attrs={'first_seen': None,
-                                   'last_seen': None,
-                                   'lineage_last_seen': None,
-                                   'depth': None,
-                                   'abundance': 0,
-                                   'abundances': [0],
-                                   'total_abundance': 0,
-                                   'frequency': 0,
-                                   'max_frequency': 0,
-                                   'fixation_time': -1,
-                                   'fitness': 0,
-                                   'fitness_effects': [0],
-                                   'fitness_diff': 0})
+    pop = igraph.Graph(directed=True,
+                       graph_attrs={'population_size': population_size,
+                                    'generations': 0},
+                       vertex_attrs={'first_seen': None,
+                                     'last_seen': None,
+                                     'lineage_last_seen': None,
+                                     'depth': None,
+                                     'abundance': 0,
+                                     'abundances': [0],
+                                     'total_abundance': 0,
+                                     'frequency': 0,
+                                     'max_frequency': 0,
+                                     'fixation_time': -1,
+                                     'fitness': 0,
+                                     'fitness_effects': [0],
+                                     'fitness_diff': 0})
 
-    p.add_vertex(name=next(counter),
-                 depth=0,
-                 abundance=population_size,
-                 abundances=[population_size],
-                 total_abundance=population_size,
-                 frequency=1.0,
-                 max_frequency=1.0,
-                 fixation_time=0,
-                 fitness=base_fitness,
-                 fitness_effects=[0],
-                 fitness_diff=0)
-    return p
+    pop.add_vertex(name=next(counter),
+                   depth=0,
+                   abundance=population_size,
+                   abundances=[population_size],
+                   total_abundance=population_size,
+                   frequency=1.0,
+                   max_frequency=1.0,
+                   fixation_time=0,
+                   fitness=base_fitness,
+                   fitness_effects=[0],
+                   fitness_diff=0)
+    return pop
 
 
-def reproduce(p, population_size):
+def reproduce(population, population_size):
     """Fill the population using fitness-proportional selection"""
 
-    fitnesses = np.array(p.vs['fitness'])
-    abundances = np.array(p.vs['abundance'])
+    fitnesses = np.array(population.vs['fitness'])
+    abundances = np.array(population.vs['abundance'])
     ab_fit = fitnesses * abundances
 
-    p.vs['abundance'] = nmultinom(n=population_size,
-                                  pvals=ab_fit / ab_fit.sum(),
-                                  size=1)[0]
-    return p
+    population.vs['abundance'] = nmultinom(n=population_size,
+                                           pvals=ab_fit / ab_fit.sum(),
+                                           size=1)[0]
+    return population
 
 
-def mutate_bdc(p, mutation_rate, genotype_counter):
+def mutate_bdc(population, mutation_rate, genotype_counter):
     """Mutate individuals in the population"""
 
-    assert(mutation_rate >= 0 and mutation_rate <= 1)
+    assert mutation_rate >= 0 and mutation_rate <= 1
 
-    num_mutants = nbinom(n=p.vs['abundance'], p=mutation_rate)
-    p.vs['abundance'] = p.vs['abundance'] - num_mutants
+    num_mutants = nbinom(n=population.vs['abundance'], p=mutation_rate)
+    population.vs['abundance'] = population.vs['abundance'] - num_mutants
 
     for parent_id in np.nonzero(num_mutants)[0]:
         for _mutant in srange(num_mutants[parent_id]):
@@ -87,56 +87,57 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
             # TODO: handle mutation effect sizes properly
             mu_effect = nnormal(loc=0.0, scale=0.1)
 
-            p.add_vertex(name=next(genotype_counter),
-                         abundance=1,
-                         abundances=[1],
-                         total_abundance=1,
-                         depth=p.vs[parent_id]['depth'] + 1,
-                         fitness=p.vs[parent_id]['fitness'] + mu_effect,
-                         fitness_effects=[mu_effect],
-                         fitness_diff=mu_effect,
-                         frequency=1 / p['population_size'],
-                         fixation_time=-1,
-                         max_frequency=0)
-            p.add_edge(source=parent_id,
-                       target=p.vcount() - 1,
-                       fitness_effect=mu_effect)
+            population.add_vertex(name=next(genotype_counter),
+                                  abundance=1,
+                                  abundances=[1],
+                                  total_abundance=1,
+                                  depth=population.vs[parent_id]['depth'] + 1,
+                                  fitness=population.vs[parent_id]['fitness'] + mu_effect,
+                                  fitness_effects=[mu_effect],
+                                  fitness_diff=mu_effect,
+                                  frequency=1 / population['population_size'],
+                                  fixation_time=-1,
+                                  max_frequency=0)
+            population.add_edge(source=parent_id,
+                                target=population.vcount() - 1,
+                                fitness_effect=mu_effect)
 
-    return p
+    return population
 
 
-def dilute(p, dilution_prob):
+def dilute(population, dilution_prob):
     """Thin the population"""
-    assert(dilution_prob >= 0 and dilution_prob <= 1)
-    p.vs['abundance'] = nbinom(n=p.vs['abundance'], p=dilution_prob)
-    return p
+    assert dilution_prob >= 0 and dilution_prob <= 1
+    population.vs['abundance'] = nbinom(n=population.vs['abundance'],
+                                        p=dilution_prob)
+    return population
 
 
-def prune_frequency(p, min_frequency):
+def prune_frequency(population, min_frequency):
     """Delete extinct leaf nodes that did not reach a given frequency"""
     # Could also prune based on total_abundance and max_frequency
-    p.vs.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
-    return p
+    population.vs.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
+    return population
 
 
-def get_total_abundances(v):
-    """Get the abundance of a vertex and all of its descendants"""
+def get_total_abundances(genotype):
+    """Get the abundance of a genotype and all of its descendants"""
 
-    v['total_abundance'] = v['abundance']
+    genotype['total_abundance'] = genotype['abundance']
 
-    for child in v.neighbors(mode="OUT"):
-        v['total_abundance'] += get_total_abundances(v=child)
+    for child in genotype.neighbors(mode="OUT"):
+        genotype['total_abundance'] += get_total_abundances(genotype=child)
 
-    return v['total_abundance']
+    return genotype['total_abundance']
 
 # -----------------------------------------------------------------------------
 
-def graph_write_json(g, filename, **kwargs):
+def graph_write_json(graph, filename, **kwargs):
     """Write the graph to JSON file"""
     d = {}
-    d['attributes'] = {a:g[a] for a in g.attributes()}
+    d['attributes'] = {a:graph[a] for a in graph.attributes()}
 #    d['vertices'] = [{'index': v.index,
-#                      'attributes': v.attributes()} for v in g.vs]
+#                      'attributes': v.attributes()} for v in graph.vs]
     d['vertices'] = [{'index': v.index,
                       'attributes': {'name': v['name'],
                                      'first_seen': v['first_seen'],
@@ -151,12 +152,12 @@ def graph_write_json(g, filename, **kwargs):
                                      'fixation_time': v['fixation_time'],
                                      'fitness': v['fitness'],
                                      'fitness_effects': v['fitness_effects'],
-                                     'fitness_diff': v['fitness_diff']}} for v in g.vs]
+                                     'fitness_diff': v['fitness_diff']}} for v in graph.vs]
 
     d['edges'] = [{'index': e.index,
                    'source': e.source,
                    'target': e.target,
-                   'attributes': e.attributes()} for e in g.es]
+                   'attributes': e.attributes()} for e in graph.es]
 
     with open(filename, 'w') as outfile:
         json.dump(d, outfile, **kwargs)
@@ -234,11 +235,24 @@ def run_simulation(args=parse_arguments()):
 
 
     outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
-                             fieldnames=['Generation', 'Genotype', 'FirstSeen', 'LastSeen', 'LineageLastSeen', 'Depth', 'Fitness', 'FitnessEffects', 'FitnessDiff', 'Abundance', 'TotAbundance', 'Frequency', 'FixationTime'])
+                             fieldnames=['Generation',
+                                         'Genotype',
+                                         'FirstSeen',
+                                         'LastSeen',
+                                         'LineageLastSeen',
+                                         'Depth',
+                                         'Fitness',
+                                         'FitnessEffects',
+                                         'FitnessDiff',
+                                         'Abundance',
+                                         'TotAbundance',
+                                         'Frequency',
+                                         'FixationTime'])
     outfile.writeheader()
 
     genotype_counter = itertools.count(0)
-    genotypes = create_population(population_size=args.population_size, counter=genotype_counter)
+    genotypes = create_population(population_size=args.population_size,
+                                  counter=genotype_counter)
 
     for gen in srange(args.generations):
         genotypes.vs.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
@@ -265,12 +279,15 @@ def run_simulation(args=parse_arguments()):
                               'Frequency': g['frequency'],
                               'FixationTime': g['fixation_time']})
 
-        reproduce(genotypes, population_size=args.population_size)
-        #mutate_multiples(genotypes, mutation_rate=args.mutation_rate, genotype_counter=genotype_counter)
-        mutate_bdc(genotypes, mutation_rate=args.mutation_rate, genotype_counter=genotype_counter)
+        reproduce(population=genotypes, population_size=args.population_size)
+        #mutate_multiples(population=genotypes,
+        #                 mutation_rate=args.mutation_rate,
+        #                 genotype_counter=genotype_counter)
+        mutate_bdc(population=genotypes, mutation_rate=args.mutation_rate,
+                   genotype_counter=genotype_counter)
 
-        prune_frequency(genotypes, min_frequency=args.prune_freq)
-        get_total_abundances(v=genotypes.vs[0])
+        prune_frequency(population=genotypes, min_frequency=args.prune_freq)
+        get_total_abundances(genotype=genotypes.vs[0])
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None):
             v['abundances'].append(int(v['abundance']))
