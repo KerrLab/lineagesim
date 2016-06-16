@@ -199,11 +199,11 @@ def parse_arguments():
                                      description='Run a lineage interference simulation')
     parser.add_argument('--fixation_freq', '-f', metavar='F',
                         type=check_positive_01,
-                        help='Threshold frequency for classification as fixed (default: 1 - M)')
+                        help='Threshold frequency for classification as fixed (default: 1 - μ)')
     parser.add_argument('--generations', '-G', metavar='G', default=1000,
                         type=check_positive_int,
                         help='Number of generations to simulate')
-    parser.add_argument('--mutation_rate', '-m', metavar='M', default=1e-6,
+    parser.add_argument('--mutation_rate', '-m', metavar='μ', default=1e-6,
                         type=check_positive_01,
                         help='Mutation rate (default: 1e-6)')
     parser.add_argument('--population_size', '-N', metavar='N',
@@ -211,7 +211,7 @@ def parse_arguments():
                         help='Size of the population (default: 1,000,000)')
     parser.add_argument('--prune_freq', '-p', metavar='F',
                         type=check_positive_01,
-                        help='Threshold frequency for pruning (default: (N * M) / N)')
+                        help='Threshold frequency for pruning (default: (N * μ) / N)')
     parser.add_argument('--seed', '-s', metavar='S', help='Set the '\
                         'pseudorandom number generator seed',
                         type=check_nonnegative_int)
