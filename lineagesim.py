@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
+import argparse
 import csv
 import itertools
 import json
@@ -14,15 +16,7 @@ from six.moves import range as srange
 
 from mutate_multiples import mutate_multiples
 
-POPSIZE = int(1e7)
-NUM_CYCLES = 1000
-MUTATION_RATE = 1e-5
 OUTFILENAME = "results.csv"
-THRESH_FREQ = 0.0001
-#THRESH_FREQ = (POPSIZE * MUTATION_RATE) / POPSIZE
-FIXATION_THRESH = 1 - 1e-4
-
-#np.random.seed(90210)
 
 # current abundances: [v['abundances'][-1] for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None)]
 # g.vs(abundance_gt=0)
@@ -33,36 +27,36 @@ FIXATION_THRESH = 1 - 1e-4
 # -----------------------------------------------------------------------------
 
 # Create the population
-def create_population(population_size, counter, base_fitness = 1.0):
+def create_population(population_size, counter, base_fitness=1.0):
     """Create the population"""
-    p = igraph.Graph(directed = True,
-                     graph_attrs = {'population_size': population_size,
-                                    'generations': 0},
-                     vertex_attrs = {'first_seen': None,
-                                     'last_seen': None,
-                                     'lineage_last_seen': None,
-                                     'depth': None,
-                                     'abundance': 0,
-                                     'abundances': [0],
-                                     'total_abundance': 0,
-                                     'frequency': 0,
-                                     'max_frequency': 0,
-                                     'fixation_time': -1,
-                                     'fitness': 0,
-                                     'fitness_effects': [0],
-                                     'fitness_diff': 0})
+    p = igraph.Graph(directed=True,
+                     graph_attrs={'population_size': population_size,
+                                  'generations': 0},
+                     vertex_attrs={'first_seen': None,
+                                   'last_seen': None,
+                                   'lineage_last_seen': None,
+                                   'depth': None,
+                                   'abundance': 0,
+                                   'abundances': [0],
+                                   'total_abundance': 0,
+                                   'frequency': 0,
+                                   'max_frequency': 0,
+                                   'fixation_time': -1,
+                                   'fitness': 0,
+                                   'fitness_effects': [0],
+                                   'fitness_diff': 0})
 
-    p.add_vertex(name = next(counter),
-                 depth = 0,
-                 abundance = population_size,
-                 abundances = [population_size],
-                 total_abundance = population_size,
-                 frequency = 1.0,
-                 max_frequency = 1.0,
-                 fixation_time = 0,
-                 fitness = base_fitness,
-                 fitness_effects = [0],
-                 fitness_diff = 0)
+    p.add_vertex(name=next(counter),
+                 depth=0,
+                 abundance=population_size,
+                 abundances=[population_size],
+                 total_abundance=population_size,
+                 frequency=1.0,
+                 max_frequency=1.0,
+                 fixation_time=0,
+                 fitness=base_fitness,
+                 fitness_effects=[0],
+                 fitness_diff=0)
     return p
 
 
@@ -73,9 +67,9 @@ def reproduce(p, population_size):
     abundances = np.array(p.vs['abundance'])
     ab_fit = fitnesses * abundances
 
-    p.vs['abundance'] = nmultinom(n = population_size,
-                                  pvals = ab_fit / ab_fit.sum(),
-                                  size = 1)[0]
+    p.vs['abundance'] = nmultinom(n=population_size,
+                                  pvals=ab_fit / ab_fit.sum(),
+                                  size=1)[0]
     return p
 
 
@@ -84,29 +78,29 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
 
     assert(mutation_rate >= 0 and mutation_rate <= 1)
 
-    num_mutants = nbinom(n = p.vs['abundance'], p = mutation_rate)
+    num_mutants = nbinom(n=p.vs['abundance'], p=mutation_rate)
     p.vs['abundance'] = p.vs['abundance'] - num_mutants
 
     for parent_id in np.nonzero(num_mutants)[0]:
         for _mutant in srange(num_mutants[parent_id]):
 
             # TODO: handle mutation effect sizes properly
-            mu_effect = nnormal(loc = 0.0, scale = 0.1)
+            mu_effect = nnormal(loc=0.0, scale=0.1)
 
-            p.add_vertex(name = next(genotype_counter),
-                         abundance = 1,
-                         abundances = [1],
-                         total_abundance = 1,
-                         depth = p.vs[parent_id]['depth'] + 1,
-                         fitness = p.vs[parent_id]['fitness'] + mu_effect,
-                         fitness_effects = [mu_effect],
-                         fitness_diff = mu_effect,
-                         frequency = 1 / p['population_size'],
-                         fixation_time = -1,
-                         max_frequency = 0)
-            p.add_edge(source = parent_id,
-                       target = p.vcount() - 1,
-                       fitness_effect = mu_effect)
+            p.add_vertex(name=next(genotype_counter),
+                         abundance=1,
+                         abundances=[1],
+                         total_abundance=1,
+                         depth=p.vs[parent_id]['depth'] + 1,
+                         fitness=p.vs[parent_id]['fitness'] + mu_effect,
+                         fitness_effects=[mu_effect],
+                         fitness_diff=mu_effect,
+                         frequency=1 / p['population_size'],
+                         fixation_time=-1,
+                         max_frequency=0)
+            p.add_edge(source=parent_id,
+                       target=p.vcount() - 1,
+                       fitness_effect=mu_effect)
 
     return p
 
@@ -114,7 +108,7 @@ def mutate_bdc(p, mutation_rate, genotype_counter):
 def dilute(p, dilution_prob):
     """Thin the population"""
     assert(dilution_prob >= 0 and dilution_prob <= 1)
-    p.vs['abundance'] = nbinom(n = p.vs['abundance'], p = dilution_prob)
+    p.vs['abundance'] = nbinom(n=p.vs['abundance'], p=dilution_prob)
     return p
 
 
@@ -130,8 +124,8 @@ def get_total_abundances(v):
 
     v['total_abundance'] = v['abundance']
 
-    for child in v.neighbors(mode = "OUT"):
-        v['total_abundance'] += get_total_abundances(v = child)
+    for child in v.neighbors(mode="OUT"):
+        v['total_abundance'] += get_total_abundances(v=child)
 
     return v['total_abundance']
 
@@ -169,24 +163,90 @@ def graph_write_json(g, filename, **kwargs):
 
 # -----------------------------------------------------------------------------
 
-def run_simulation(num_generations):
+def parse_arguments():
+    """Parse command line arguments"""
+
+    def check_positive_01(value):
+        """Make sure a value is between 0 and 1, inclusive"""
+        fval = float(value)
+        if fval < 0 or fval > 1:
+            raise argparse.ArgumentTypeError("%s is not in the range [0,1]" % value)
+        return fval
+
+    def check_nonnegative(value):
+        """Make sure a value is non-negative"""
+        fval = float(value)
+        if fval < 0:
+            raise argparse.ArgumentTypeError("%s is not a valid non-negative value" % value)
+        return fval
+
+    def check_nonnegative_int(value):
+        """Make sure an integer value is non-negative"""
+        ival = int(value)
+        if ival < 0:
+            raise argparse.ArgumentTypeError("%s is not a valid non-negative integer value" % value)
+        return ival
+
+    def check_positive_int(value):
+        """Make sure an integer value is positive"""
+        ival = int(value)
+        if ival <= 0:
+            raise argparse.ArgumentTypeError("%s is not a valid positive integer value" % value)
+        return ival
+
+
+    parser = argparse.ArgumentParser(prog='lineagesim',
+                                     description='Run a lineage interference simulation')
+    parser.add_argument('--fixation_freq', '-f', metavar='F',
+                        type=check_positive_01,
+                        help='Threshold frequency for classification as fixed (default: 1 - M)')
+    parser.add_argument('--generations', '-G', metavar='G', default=1000,
+                        type=check_positive_int,
+                        help='Number of generations to simulate')
+    parser.add_argument('--mutation_rate', '-m', metavar='M', default=1e-6,
+                        type=check_positive_01,
+                        help='Mutation rate (default: 1e-6)')
+    parser.add_argument('--population_size', '-N', metavar='N',
+                        default=int(1e6), type=check_positive_int,
+                        help='Size of the population (default: 1,000,000)')
+    parser.add_argument('--prune_freq', '-p', metavar='F',
+                        type=check_positive_01,
+                        help='Threshold frequency for pruning (default: (N * M) / N)')
+    parser.add_argument('--seed', '-s', metavar='S', help='Set the '\
+                        'pseudorandom number generator seed',
+                        type=check_nonnegative_int)
+    parser.add_argument('--quiet', '-q', action='store_true', default=False,
+                        help='Suppress output messages')
+
+    return parser.parse_args()
+
+
+def run_simulation(args=parse_arguments()):
+    """Run the simulation"""
+
+    if not args.fixation_freq:
+        args.fixation_freq = 1.0 - args.mutation_rate
+    if not args.prune_freq:
+        args.prune_freq = (args.population_size * args.mutation_rate) / args.population_size
+
+    if args.seed:
+        np.random.seed(args.seed)
+
 
     outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
-                             fieldnames = ['Generation', 'Genotype', 'FirstSeen', 'LastSeen', 'LineageLastSeen', 'Depth', 'Fitness', 'FitnessEffects', 'FitnessDiff', 'Abundance', 'TotAbundance', 'Frequency', 'FixationTime'])
+                             fieldnames=['Generation', 'Genotype', 'FirstSeen', 'LastSeen', 'LineageLastSeen', 'Depth', 'Fitness', 'FitnessEffects', 'FitnessDiff', 'Abundance', 'TotAbundance', 'Frequency', 'FixationTime'])
     outfile.writeheader()
 
     genotype_counter = itertools.count(0)
-    genotypes = create_population(population_size = POPSIZE, counter = genotype_counter)
+    genotypes = create_population(population_size=args.population_size, counter=genotype_counter)
 
-    for gen in srange(num_generations):
+    for gen in srange(args.generations):
         genotypes.vs.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
         genotypes.vs.select(lambda v: v['abundance'] > 0)['last_seen'] = gen
         genotypes.vs.select(lambda v: v['total_abundance'] > 0)['lineage_last_seen'] = gen
 
-        #print("Generation {c}. Max depth: {d}".format(c = gen, d = max(genotypes.vs['depth'])))
-        #print("Gen {g}".format(g = gen))
         sys.stdout.write("\r")
-        pct = float(gen) / num_generations
+        pct = float(gen) / args.generations
         sys.stdout.write("[%-40s] %d%%" % ('='* int(40 * pct), (pct * 100)))
         sys.stdout.flush()
 
@@ -205,12 +265,12 @@ def run_simulation(num_generations):
                               'Frequency': g['frequency'],
                               'FixationTime': g['fixation_time']})
 
-        reproduce(genotypes, population_size = POPSIZE)
-        #mutate_multiples(genotypes, mutation_rate = MUTATION_RATE, genotype_counter = genotype_counter)
-        mutate_bdc(genotypes, mutation_rate = MUTATION_RATE, genotype_counter = genotype_counter)
+        reproduce(genotypes, population_size=args.population_size)
+        #mutate_multiples(genotypes, mutation_rate=args.mutation_rate, genotype_counter=genotype_counter)
+        mutate_bdc(genotypes, mutation_rate=args.mutation_rate, genotype_counter=genotype_counter)
 
-        prune_frequency(genotypes, min_frequency = THRESH_FREQ)
-        get_total_abundances(v = genotypes.vs[0])
+        prune_frequency(genotypes, min_frequency=args.prune_freq)
+        get_total_abundances(v=genotypes.vs[0])
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None):
             v['abundances'].append(int(v['abundance']))
@@ -222,16 +282,16 @@ def run_simulation(num_generations):
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None and v['frequency'] > v['max_frequency']):
             v['max_frequency'] = v['frequency']
 
-        genotypes.vs.select(lambda v: v['fixation_time'] == -1 and (float(v['total_abundance']) / genotypes['population_size']) >= FIXATION_THRESH)['fixation_time'] = gen
+        genotypes.vs.select(lambda v: v['fixation_time'] == -1 and (float(v['total_abundance']) / genotypes['population_size']) >= args.fixation_freq)['fixation_time'] = gen
 
         # For writing the tree at every cycle
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
-    graph_write_json(genotypes, "tree-end.json", sort_keys = True)
+    graph_write_json(genotypes, "tree-end.json", sort_keys=True)
     genotypes.write_gml("tree-end.gml")
 
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    run_simulation(num_generations = NUM_CYCLES)
+    run_simulation()
 
