@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+__version__ = "0.1.0"
+
 import argparse
+import datetime
 import csv
 import itertools
 import json
+import os
 import sys
+from warnings import warn
 
 import igraph
 import numpy as np
@@ -198,6 +203,8 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(prog='lineagesim',
                                      description='Run a lineage interference simulation')
+    parser.add_argument('--data_dir', '-d', metavar='DIR', default='data',
+                        help='Directory to store data (default: data)')
     parser.add_argument('--fixation_freq', '-f', metavar='F',
                         type=check_positive_01,
                         help='Threshold frequency for classification as fixed (default: 1 - μ)')
@@ -218,6 +225,7 @@ def parse_arguments():
                         type=check_nonnegative_int)
     parser.add_argument('--quiet', '-q', action='store_true', default=False,
                         help='Suppress output messages')
+    parser.add_argument('--version', action='version', version=__version__)
 
     return parser.parse_args()
 
@@ -233,8 +241,17 @@ def run_simulation(args=parse_arguments()):
     if args.seed:
         np.random.seed(args.seed)
 
+    if os.path.exists(args.data_dir):
+        newname = '{o}-{d}'.format(o=args.data_dir, d=datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+        msg = "{d} already exists. Saving data to {new}.".format(d=args.data_dir, new=newname)
+        warn(msg)
+        args.data_dir = newname
 
-    outfile = csv.DictWriter(open(OUTFILENAME, 'w'),
+    os.mkdir(args.data_dir)
+
+
+    outfile = csv.DictWriter(open(os.path.join(args.data_dir, OUTFILENAME),
+                                  'w'),
                              fieldnames=['Generation',
                                          'Genotype',
                                          'FirstSeen',
@@ -306,8 +323,9 @@ def run_simulation(args=parse_arguments()):
         # For writing the tree at every cycle
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
-    graph_write_json(genotypes, "tree-end.json", sort_keys=True)
-    genotypes.write_gml("tree-end.gml")
+    graph_write_json(genotypes, os.path.join(args.data_dir, "tree-end.json"),
+                     sort_keys=True)
+    genotypes.write_gml(os.path.join(args.data_dir, "tree-end.gml"))
 
 # -----------------------------------------------------------------------------
 
