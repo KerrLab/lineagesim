@@ -46,6 +46,7 @@ def create_population(population_size, counter, base_fitness=1.0):
                                      'total_abundance': 0,
                                      'frequency': 0,
                                      'max_frequency': 0,
+                                     'total_frequency': 0,
                                      'fixation_time': -1,
                                      'fitness': 0,
                                      'fitness_effects': [0],
@@ -58,6 +59,7 @@ def create_population(population_size, counter, base_fitness=1.0):
                    total_abundance=population_size,
                    frequency=1.0,
                    max_frequency=1.0,
+                   total_frequency=1.0,
                    fixation_time=0,
                    fitness=base_fitness,
                    fitness_effects=[0],
@@ -154,6 +156,7 @@ def graph_write_json(graph, filename, **kwargs):
                                      'total_abundance': int(v['total_abundance']),
                                      'frequency': v['frequency'],
                                      'max_frequency': v['max_frequency'],
+                                     'total_frequency': v['total_frequency'],
                                      'fixation_time': v['fixation_time'],
                                      'fitness': v['fitness'],
                                      'fitness_effects': v['fitness_effects'],
@@ -166,6 +169,44 @@ def graph_write_json(graph, filename, **kwargs):
 
     with open(filename, 'w') as outfile:
         json.dump(d, outfile, **kwargs)
+
+
+def graph_write_csv(graph, filename, **kwargs):
+    """Write the graph to CSV file"""
+
+    with open(filename, 'w') as outfile:
+        writer = csv.DictWriter(outfile, fieldnames=['Genotype',
+                                                     'FirstSeen',
+                                                     'LastSeen',
+                                                     'LineageLastSeen',
+                                                     'Depth',
+                                                     'Fitness',
+                                                     'FitnessEffects',
+                                                     'FitnessDiff',
+                                                     'Abundance',
+                                                     'TotalAbundance',
+                                                     'Frequency',
+                                                     'MaxFrequency',
+                                                     'TotalFrequency',
+                                                     'FixationTime'])
+        writer.writeheader()
+
+        for g in graph.vs.select(lambda v: v['first_seen'] is not None):
+            writer.writerow({'Genotype': g['name'],
+                             'FirstSeen': g['first_seen'],
+                             'LastSeen': g['last_seen'],
+                             'LineageLastSeen': g['lineage_last_seen'],
+                             'Depth': g['depth'],
+                             'Fitness': g['fitness'],
+                             'FitnessEffects': sum(g['fitness_effects']),
+                             'FitnessDiff': g['fitness_diff'],
+                             'Abundance': g['abundance'],
+                             'TotalAbundance': g['total_abundance'],
+                             'Frequency': g['frequency'],
+                             'MaxFrequency': g['max_frequency'],
+                             'TotalFrequency': g['total_frequency'],
+                             'FixationTime': g['fixation_time']})
+
 
 # -----------------------------------------------------------------------------
 
@@ -262,9 +303,10 @@ def run_simulation(args=parse_arguments()):
                                          'FitnessEffects',
                                          'FitnessDiff',
                                          'Abundance',
-                                         'TotAbundance',
+                                         'TotalAbundance',
                                          'Frequency',
                                          'MaxFrequency',
+                                         'TotalFrequency',
                                          'FixationTime'])
     outfile.writeheader()
 
@@ -277,10 +319,11 @@ def run_simulation(args=parse_arguments()):
         genotypes.vs.select(lambda v: v['abundance'] > 0)['last_seen'] = gen
         genotypes.vs.select(lambda v: v['total_abundance'] > 0)['lineage_last_seen'] = gen
 
-        sys.stdout.write("\r")
-        pct = float(gen) / args.generations
-        sys.stdout.write("[%-40s] %d%%" % ('='* int(40 * pct), (pct * 100)))
-        sys.stdout.flush()
+        if not args.quiet:
+            sys.stdout.write("\r")
+            pct = float(gen) / args.generations
+            sys.stdout.write("[%-40s] %d%%" % ('='* int(40 * pct), (pct * 100)))
+            sys.stdout.flush()
 
         for g in genotypes.vs.select(lambda v: v['total_abundance'] > 0):
             outfile.writerow({'Generation': gen,
@@ -293,9 +336,10 @@ def run_simulation(args=parse_arguments()):
                               'FitnessEffects': sum(g['fitness_effects']),
                               'FitnessDiff': g['fitness_diff'],
                               'Abundance': g['abundance'],
-                              'TotAbundance': g['total_abundance'],
+                              'TotalAbundance': g['total_abundance'],
                               'Frequency': g['frequency'],
                               'MaxFrequency': g['max_frequency'],
+                              'TotalFrequency': g['total_frequency'],
                               'FixationTime': g['fixation_time']})
 
         reproduce(population=genotypes, population_size=args.population_size)
@@ -314,6 +358,8 @@ def run_simulation(args=parse_arguments()):
         genotypes['generations'] += 1
         genotypes['population_size'] = int(sum(genotypes.vs['abundance']))
         genotypes.vs['frequency'] = genotypes.vs['abundance'] / sum(genotypes.vs['abundance'])
+        genotypes.vs['total_frequency'] = genotypes.vs['total_abundance'] / sum(genotypes.vs['abundance'])
+
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None and v['frequency'] > v['max_frequency']):
             v['max_frequency'] = v['frequency']
@@ -323,6 +369,7 @@ def run_simulation(args=parse_arguments()):
         # For writing the tree at every cycle
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
+    graph_write_csv(genotypes, os.path.join(args.data_dir, "tree-end.csv"))
     graph_write_json(genotypes, os.path.join(args.data_dir, "tree-end.json"),
                      sort_keys=True)
     genotypes.write_gml(os.path.join(args.data_dir, "tree-end.gml"))
