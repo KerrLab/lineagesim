@@ -187,8 +187,8 @@ def graph_write_csv(graph, filename, **kwargs):
                                                      'LineageLastSeen',
                                                      'Depth',
                                                      'Fitness',
-                                                     'FitnessEffects',
                                                      'FitnessDiff',
+                                                     'NumMutations',
                                                      'Abundance',
                                                      'TotalAbundance',
                                                      'Frequency',
@@ -205,8 +205,8 @@ def graph_write_csv(graph, filename, **kwargs):
                              'LineageLastSeen': g['lineage_last_seen'],
                              'Depth': g['depth'],
                              'Fitness': g['fitness'],
-                             'FitnessEffects': sum(g['fitness_effects']),
                              'FitnessDiff': g['fitness_diff'],
+                             'NumMutations': len(g['fitness_effects']),
                              'Abundance': g['abundance'],
                              'TotalAbundance': g['total_abundance'],
                              'Frequency': g['frequency'],
@@ -254,8 +254,8 @@ def parse_arguments():
     parser.add_argument('--data_dir', '-d', metavar='DIR', default='data',
                         help='Directory to store data (default: data)')
     parser.add_argument('--fixation_freq', '-f', metavar='F',
-                        type=check_positive_01,
-                        help='Threshold frequency for classification as fixed (default: 1 - μ)')
+                        default=1.0, type=check_positive_01,
+                        help='Threshold frequency for classification as fixed (default: 1)')
     parser.add_argument('--generations', '-G', metavar='G', default=1000,
                         type=check_positive_int,
                         help='Number of generations to simulate')
@@ -281,8 +281,6 @@ def parse_arguments():
 def run_simulation(args=parse_arguments()):
     """Run the simulation"""
 
-    if not args.fixation_freq:
-        args.fixation_freq = 1.0 - args.mutation_rate
     if not args.prune_freq:
         args.prune_freq = (args.population_size * args.mutation_rate) / args.population_size
 
@@ -308,8 +306,8 @@ def run_simulation(args=parse_arguments()):
                                          'LineageLastSeen',
                                          'Depth',
                                          'Fitness',
-                                         'FitnessEffects',
                                          'FitnessDiff',
+                                         'NumMutations',
                                          'Abundance',
                                          'TotalAbundance',
                                          'Frequency',
@@ -342,8 +340,8 @@ def run_simulation(args=parse_arguments()):
                               'LineageLastSeen': g['lineage_last_seen'],
                               'Depth': g['depth'],
                               'Fitness': g['fitness'],
-                              'FitnessEffects': sum(g['fitness_effects']),
                               'FitnessDiff': g['fitness_diff'],
+                              'NumMutations': len(g['fitness_effects']),
                               'Abundance': g['abundance'],
                               'TotalAbundance': g['total_abundance'],
                               'Frequency': g['frequency'],
@@ -352,11 +350,11 @@ def run_simulation(args=parse_arguments()):
                               'FixationTime': g['fixation_time']})
 
         reproduce(population=genotypes, population_size=args.population_size)
-        #mutate_multiples(population=genotypes,
-        #                 mutation_rate=args.mutation_rate,
-        #                 genotype_counter=genotype_counter)
-        mutate_bdc(population=genotypes, mutation_rate=args.mutation_rate,
-                   genotype_counter=genotype_counter)
+        mutate_multiples(population=genotypes,
+                         mutation_rate=args.mutation_rate,
+                         genotype_counter=genotype_counter)
+        #mutate_bdc(population=genotypes, mutation_rate=args.mutation_rate,
+        #           genotype_counter=genotype_counter)
 
         prune_frequency(population=genotypes, min_frequency=args.prune_freq)
         get_total_abundances(genotype=genotypes.vs[0])
