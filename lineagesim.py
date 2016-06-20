@@ -37,7 +37,9 @@ def create_population(population_size, counter, base_fitness=1.0):
     pop = igraph.Graph(directed=True,
                        graph_attrs={'population_size': population_size,
                                     'generations': 0},
-                       vertex_attrs={'first_seen': None,
+                       vertex_attrs={'name': None,
+                                     'parent': None,
+                                     'first_seen': None,
                                      'last_seen': None,
                                      'lineage_last_seen': None,
                                      'depth': None,
@@ -53,6 +55,7 @@ def create_population(population_size, counter, base_fitness=1.0):
                                      'fitness_diff': 0})
 
     pop.add_vertex(name=next(counter),
+                   parent=-1,
                    depth=0,
                    abundance=population_size,
                    abundances=[population_size],
@@ -95,6 +98,7 @@ def mutate_bdc(population, mutation_rate, genotype_counter):
             mu_effect = nnormal(loc=0.0, scale=0.1)
 
             population.add_vertex(name=next(genotype_counter),
+                                  parent=int(parent_id),
                                   abundance=1,
                                   abundances=[1],
                                   total_abundance=1,
@@ -147,6 +151,7 @@ def graph_write_json(graph, filename, **kwargs):
 #                      'attributes': v.attributes()} for v in graph.vs]
     d['vertices'] = [{'index': v.index,
                       'attributes': {'name': v['name'],
+                                     'parent': v['parent'],
                                      'first_seen': v['first_seen'],
                                      'last_seen': v['last_seen'],
                                      'lineage_last_seen': v['lineage_last_seen'],
@@ -176,6 +181,7 @@ def graph_write_csv(graph, filename, **kwargs):
 
     with open(filename, 'w') as outfile:
         writer = csv.DictWriter(outfile, fieldnames=['Genotype',
+                                                     'Parent',
                                                      'FirstSeen',
                                                      'LastSeen',
                                                      'LineageLastSeen',
@@ -193,6 +199,7 @@ def graph_write_csv(graph, filename, **kwargs):
 
         for g in graph.vs.select(lambda v: v['first_seen'] is not None):
             writer.writerow({'Genotype': g['name'],
+                             'Parent': g['parent'],
                              'FirstSeen': g['first_seen'],
                              'LastSeen': g['last_seen'],
                              'LineageLastSeen': g['lineage_last_seen'],
@@ -295,6 +302,7 @@ def run_simulation(args=parse_arguments()):
                                   'w'),
                              fieldnames=['Generation',
                                          'Genotype',
+                                         'Parent',
                                          'FirstSeen',
                                          'LastSeen',
                                          'LineageLastSeen',
@@ -328,6 +336,7 @@ def run_simulation(args=parse_arguments()):
         for g in genotypes.vs.select(lambda v: v['total_abundance'] > 0):
             outfile.writerow({'Generation': gen,
                               'Genotype': g['name'],
+                              'Parent': g['parent'],
                               'FirstSeen': g['first_seen'],
                               'LastSeen': g['last_seen'],
                               'LineageLastSeen': g['lineage_last_seen'],

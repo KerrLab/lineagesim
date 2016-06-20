@@ -28,6 +28,7 @@ def mutate_multiples(population, mutation_rate, genotype_counter):
             for _mutant in srange(num_k_mutants[parent_id]):
                 mu_effect = nexp(scale=0.01, size=k)
                 population.add_vertex(name=next(genotype_counter),
+                                      parent=int(parent_id),
                                       abundance=1,
                                       abundances=[1],
                                       total_abundance=1,
