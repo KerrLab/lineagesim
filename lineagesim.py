@@ -98,7 +98,7 @@ def mutate_bdc(population, mutation_rate, genotype_counter):
             mu_effect = nnormal(loc=0.0, scale=0.1)
 
             population.add_vertex(name=next(genotype_counter),
-                                  parent=int(parent_id),
+                                  parent=int(population.vs[parent_id]['name']),
                                   abundance=1,
                                   abundances=[1],
                                   total_abundance=1,
