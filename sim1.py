@@ -22,10 +22,10 @@ from io import StringIO
 
 
 POPSIZE = int(1e7)
-NUM_CYCLES = 100
+NUM_CYCLES = 300
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
-THRESH_FREQ = 0.001
+THRESH_FREQ = 0.000
 
 np.random.seed(90210)
 
@@ -74,7 +74,6 @@ def reproduce(p, population_size):
     abundances = np.array(genotype_nodes['abundance'])
     ab_fit = fitnesses * abundances
 
-
     genotype_nodes['abundance'] = nmultinom(n = population_size,
                                   pvals = ab_fit / ab_fit.sum(),
                                   size = 1)[0]
@@ -89,6 +88,7 @@ def mutate_bdc(p, mutation_rate, node_counter, gen):
     assert(mutation_rate >= 0 and mutation_rate <= 1)
     genotype_nodes = p.vs.select(genotype_node_eq=True)
 
+    actual_pop_size = sum(genotype_nodes['abundance'])
 
     num_mutants = nbinom(n = genotype_nodes['abundance'], p = mutation_rate)
     genotype_nodes['abundance'] = genotype_nodes['abundance'] - num_mutants
@@ -117,7 +117,7 @@ def mutate_bdc(p, mutation_rate, node_counter, gen):
                          abundance = 1, abundances = [1],
                          depth = genotype_nodes[parent_id]['depth'] + 1,
                          fitness = genotype_nodes[parent_id]['fitness'] + mu_effect,
-                         fitness_diff = [mu_effect], frequency = 1,
+                         fitness_diff = [mu_effect], frequency = 0,
                          max_frequency = 0, genotype_node = True, first_seen=gen)
             
             #add edge to new mutation
@@ -145,8 +145,10 @@ def dilute(p, dilution_prob):
 def prune_frequency(p, min_frequency):
     """Delete extinct leaf nodes that did not reach a given frequency"""
     genotype_nodes = p.vs.select(genotype_node_eq=True)
-    prunable_nodes = genotype_nodes.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency)
-    print(len(prunable_nodes))
+    prunable_nodes = genotype_nodes.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None)
+    for node in prunable_nodes:
+        print(node['max_frequency'])
+    print()
     prunable_nodes.delete()
     return p
 
@@ -220,6 +222,7 @@ def run_simulation(num_generations):
 
         reproduce(genotypes, population_size = POPSIZE)
         mutate_bdc(genotypes, MUTATION_RATE, node_counter, gen)
+        prune_frequency(genotypes, min_frequency = THRESH_FREQ)
 
         #update genotype subset after mutations...
         #TODO: is this required?
