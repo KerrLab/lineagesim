@@ -1,11 +1,15 @@
 import numpy as np
+from numpy import hstack as nhstack
+from numpy import nonzero as nnonzero
+from numpy import prod as nprod
+from numpy import subtract as nsubtract
 from numpy.random import binomial as nbinom
 from numpy.random import exponential as nexp
 from scipy.special import gammainc as gamma
 from six.moves import range as srange
 
 
-def mutate_multiples(population, mutation_rate, genotype_counter):
+def mutate_multiples(population, mutation_rate, mutation_scale, genotype_counter):
     """Mutate individuals in the population"""
 
     assert mutation_rate >= 0 and mutation_rate <= 1
@@ -23,25 +27,27 @@ def mutate_multiples(population, mutation_rate, genotype_counter):
         new_r = nbinom(n=r,
                        p=gamma(k+1, mutation_rate)/gamma(k, mutation_rate),
                        size=len(r))
-        num_k_mutants = np.subtract(r, new_r) #number of k-mutants
-        for parent_id in np.nonzero(num_k_mutants)[0]:
+        num_k_mutants = nsubtract(r, new_r) #number of k-mutants
+        for parent_id in nnonzero(num_k_mutants)[0]:
             for _mutant in srange(num_k_mutants[parent_id]):
-                mu_effect = nexp(scale=0.01, size=k)
+                mu_effect = nexp(scale=mutation_scale, size=k)
+                mutant_fitness = nhstack((population.vs[parent_id]['fitness'], (1.0 + mu_effect))).prod()
+
                 population.add_vertex(name=next(genotype_counter),
                                       parent=int(population.vs[parent_id]['name']),
                                       abundance=1,
                                       abundances=[1],
                                       total_abundance=1,
                                       depth=population.vs[parent_id]['depth'] + 1,
-                                      fitness=population.vs[parent_id]['fitness'] + np.prod(1 + mu_effect),
+                                      fitness=mutant_fitness,
                                       fitness_effects=mu_effect.tolist(),
-                                      fitness_diff=np.prod(1 + mu_effect),
-                                      frequency=1 / population['population_size'],
-                                      max_frequency=0,
+                                      fitness_diff=mutant_fitness - population.vs[parent_id]['fitness'],
+                                      frequency=1.0 / population['population_size'],
+                                      max_frequency=1.0 / population['population_size'],
                                       fixation_time=-1)
                 population.add_edge(source=parent_id,
                                     target=population.vcount() - 1,
-                                    fitness_effect=np.prod(1 + mu_effect))
+                                    fitness_effect=nprod(1 + mu_effect))
 
         r = new_r
         k += 1

@@ -22,6 +22,7 @@ from six.moves import range as srange
 from mutate_multiples import mutate_multiples
 
 OUTFILENAME = "results.csv"
+MUTATION_SCALE = 0.01
 
 # current abundances: [v['abundances'][-1] for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None)]
 # g.vs(abundance_gt=0)
@@ -83,7 +84,7 @@ def reproduce(population, population_size):
     return population
 
 
-def mutate_bdc(population, mutation_rate, genotype_counter):
+def mutate_bdc(population, mutation_rate, mutation_scale, genotype_counter):
     """Mutate individuals in the population"""
 
     assert mutation_rate >= 0 and mutation_rate <= 1
@@ -95,7 +96,7 @@ def mutate_bdc(population, mutation_rate, genotype_counter):
         for _mutant in srange(num_mutants[parent_id]):
 
             # TODO: handle mutation effect sizes properly
-            mu_effect = nnormal(loc=0.0, scale=0.1)
+            mu_effect = nnormal(loc=0.0, scale=mutation_scale)
 
             population.add_vertex(name=next(genotype_counter),
                                   parent=int(population.vs[parent_id]['name']),
@@ -262,13 +263,16 @@ def parse_arguments():
     parser.add_argument('--mutation_rate', '-m', metavar='μ', default=1e-6,
                         type=check_positive_01,
                         help='Mutation rate (default: 1e-6)')
+    parser.add_argument('--mutation_scale', '-s', metavar='s', default=0.01,
+                        type=check_positive_01,
+                        help='Mutation scale (default: 0.01)')
     parser.add_argument('--population_size', '-N', metavar='N',
                         default=int(1e6), type=check_positive_int,
                         help='Size of the population (default: 1,000,000)')
     parser.add_argument('--prune_freq', '-p', metavar='F',
                         type=check_positive_01,
                         help='Threshold frequency for pruning (default: (N * μ) / N)')
-    parser.add_argument('--seed', '-s', metavar='S', help='Set the '\
+    parser.add_argument('--seed', '-S', metavar='S', help='Set the '\
                         'pseudorandom number generator seed',
                         type=check_nonnegative_int)
     parser.add_argument('--quiet', '-q', action='store_true', default=False,
@@ -352,8 +356,10 @@ def run_simulation(args=parse_arguments()):
         reproduce(population=genotypes, population_size=args.population_size)
         mutate_multiples(population=genotypes,
                          mutation_rate=args.mutation_rate,
+                         mutation_scale=args.mutation_scale,
                          genotype_counter=genotype_counter)
         #mutate_bdc(population=genotypes, mutation_rate=args.mutation_rate,
+        #           mutation_scale=args.mutation_scale,
         #           genotype_counter=genotype_counter)
 
         prune_frequency(population=genotypes, min_frequency=args.prune_freq)
