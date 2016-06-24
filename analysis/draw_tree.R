@@ -10,8 +10,8 @@ g <- read_graph("tree-end.gml", format="gml")
 # TODO: get the population size from graph attributes: graph_attr(g, "populationsize")
 
 V(g)$color <- V(g)$abundance > 0
-#V(g)$size <- 4 + ((V(g)$totalabundance / popsize) * 8) 
-V(g)$size <- 1 + ((V(g)$totalabundance / popsize) * 3) 
+#V(g)$size <- 4 + ((V(g)$lineageabundance / popsize) * 8) 
+V(g)$size <- 1 + ((V(g)$lineageabundance / popsize) * 3) 
 #V(g)$label <- ifelse(V(g)$fixationtime >=0, V(g)$fixationtime - V(g)$firstseen, "")
 V(g)$label <- ifelse(V(g)$fixationtime >= 0, V(g)$fixationtime, "")
 #V(g)$label <- ifelse(V(g)$fixationtime >= 0, V(g)$firstseen, "")

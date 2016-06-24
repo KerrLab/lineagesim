@@ -46,10 +46,10 @@ def create_population(population_size, counter, base_fitness=1.0):
                                      'depth': None,
                                      'abundance': 0,
                                      'abundances': [0],
-                                     'total_abundance': 0,
+                                     'lineage_abundance': 0,
                                      'frequency': 0,
                                      'max_frequency': 0,
-                                     'total_frequency': 0,
+                                     'lineage_frequency': 0,
                                      'fixation_time': -1,
                                      'fitness': 0,
                                      'fitness_effects': [0],
@@ -60,10 +60,10 @@ def create_population(population_size, counter, base_fitness=1.0):
                    depth=0,
                    abundance=population_size,
                    abundances=[population_size],
-                   total_abundance=population_size,
+                   lineage_abundance=population_size,
                    frequency=1.0,
                    max_frequency=1.0,
-                   total_frequency=1.0,
+                   lineage_frequency=1.0,
                    fixation_time=0,
                    fitness=base_fitness,
                    fitness_effects=[0],
@@ -102,7 +102,7 @@ def mutate_bdc(population, mutation_rate, mutation_scale, genotype_counter):
                                   parent=int(population.vs[parent_id]['name']),
                                   abundance=1,
                                   abundances=[1],
-                                  total_abundance=1,
+                                  lineage_abundance=1,
                                   depth=population.vs[parent_id]['depth'] + 1,
                                   fitness=population.vs[parent_id]['fitness'] + mu_effect,
                                   fitness_effects=[mu_effect],
@@ -127,20 +127,20 @@ def dilute(population, dilution_prob):
 
 def prune_frequency(population, min_frequency):
     """Delete extinct leaf nodes that did not reach a given frequency"""
-    # Could also prune based on total_abundance and max_frequency
+    # Could also prune based on lineage_abundance and max_frequency
     population.vs.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None and v['max_frequency'] < min_frequency).delete()
     return population
 
 
-def get_total_abundances(genotype):
+def get_lineage_abundances(genotype):
     """Get the abundance of a genotype and all of its descendants"""
 
-    genotype['total_abundance'] = genotype['abundance']
+    genotype['lineage_abundance'] = genotype['abundance']
 
     for child in genotype.neighbors(mode="OUT"):
-        genotype['total_abundance'] += get_total_abundances(genotype=child)
+        genotype['lineage_abundance'] += get_lineage_abundances(genotype=child)
 
-    return genotype['total_abundance']
+    return genotype['lineage_abundance']
 
 # -----------------------------------------------------------------------------
 
@@ -159,10 +159,10 @@ def graph_write_json(graph, filename, **kwargs):
                                      'depth': v['depth'],
                                      'abundance': int(v['abundance']),
                                      'abundances': v['abundances'],
-                                     'total_abundance': int(v['total_abundance']),
+                                     'lineage_abundance': int(v['lineage_abundance']),
                                      'frequency': v['frequency'],
                                      'max_frequency': v['max_frequency'],
-                                     'total_frequency': v['total_frequency'],
+                                     'lineage_frequency': v['lineage_frequency'],
                                      'fixation_time': v['fixation_time'],
                                      'fitness': v['fitness'],
                                      'fitness_effects': v['fitness_effects'],
@@ -191,10 +191,10 @@ def graph_write_csv(graph, filename, **kwargs):
                                                      'FitnessDiff',
                                                      'NumMutations',
                                                      'Abundance',
-                                                     'TotalAbundance',
+                                                     'LineageAbundance',
                                                      'Frequency',
                                                      'MaxFrequency',
-                                                     'TotalFrequency',
+                                                     'LineageFrequency',
                                                      'FixationTime'])
         writer.writeheader()
 
@@ -209,10 +209,10 @@ def graph_write_csv(graph, filename, **kwargs):
                              'FitnessDiff': g['fitness_diff'],
                              'NumMutations': len(g['fitness_effects']),
                              'Abundance': g['abundance'],
-                             'TotalAbundance': g['total_abundance'],
+                             'LineageAbundance': g['lineage_abundance'],
                              'Frequency': g['frequency'],
                              'MaxFrequency': g['max_frequency'],
-                             'TotalFrequency': g['total_frequency'],
+                             'LineageFrequency': g['lineage_frequency'],
                              'FixationTime': g['fixation_time']})
 
 
@@ -313,10 +313,10 @@ def run_simulation(args=parse_arguments()):
                                          'FitnessDiff',
                                          'NumMutations',
                                          'Abundance',
-                                         'TotalAbundance',
+                                         'LineageAbundance',
                                          'Frequency',
                                          'MaxFrequency',
-                                         'TotalFrequency',
+                                         'LineageFrequency',
                                          'FixationTime'])
     outfile.writeheader()
 
@@ -327,7 +327,7 @@ def run_simulation(args=parse_arguments()):
     for gen in srange(args.generations):
         genotypes.vs.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
         genotypes.vs.select(lambda v: v['abundance'] > 0)['last_seen'] = gen
-        genotypes.vs.select(lambda v: v['total_abundance'] > 0)['lineage_last_seen'] = gen
+        genotypes.vs.select(lambda v: v['lineage_abundance'] > 0)['lineage_last_seen'] = gen
 
         if not args.quiet:
             sys.stdout.write("\r")
@@ -335,7 +335,7 @@ def run_simulation(args=parse_arguments()):
             sys.stdout.write("[%-40s] %d%%" % ('='* int(40 * pct), (pct * 100)))
             sys.stdout.flush()
 
-        for g in genotypes.vs.select(lambda v: v['total_abundance'] > 0):
+        for g in genotypes.vs.select(lambda v: v['lineage_abundance'] > 0):
             outfile.writerow({'Generation': gen,
                               'Genotype': g['name'],
                               'Parent': g['parent'],
@@ -347,10 +347,10 @@ def run_simulation(args=parse_arguments()):
                               'FitnessDiff': g['fitness_diff'],
                               'NumMutations': len(g['fitness_effects']),
                               'Abundance': g['abundance'],
-                              'TotalAbundance': g['total_abundance'],
+                              'LineageAbundance': g['lineage_abundance'],
                               'Frequency': g['frequency'],
                               'MaxFrequency': g['max_frequency'],
-                              'TotalFrequency': g['total_frequency'],
+                              'LineageFrequency': g['lineage_frequency'],
                               'FixationTime': g['fixation_time']})
 
         reproduce(population=genotypes, population_size=args.population_size)
@@ -363,7 +363,7 @@ def run_simulation(args=parse_arguments()):
         #           genotype_counter=genotype_counter)
 
         prune_frequency(population=genotypes, min_frequency=args.prune_freq)
-        get_total_abundances(genotype=genotypes.vs[0])
+        get_lineage_abundances(genotype=genotypes.vs[0])
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None):
             v['abundances'].append(int(v['abundance']))
@@ -371,13 +371,13 @@ def run_simulation(args=parse_arguments()):
         genotypes['generations'] += 1
         genotypes['population_size'] = int(sum(genotypes.vs['abundance']))
         genotypes.vs['frequency'] = genotypes.vs['abundance'] / sum(genotypes.vs['abundance'])
-        genotypes.vs['total_frequency'] = genotypes.vs['total_abundance'] / sum(genotypes.vs['abundance'])
+        genotypes.vs['lineage_frequency'] = genotypes.vs['lineage_abundance'] / sum(genotypes.vs['abundance'])
 
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None and v['frequency'] > v['max_frequency']):
             v['max_frequency'] = v['frequency']
 
-        genotypes.vs.select(lambda v: v['fixation_time'] == -1 and (float(v['total_abundance']) / genotypes['population_size']) >= args.fixation_freq)['fixation_time'] = gen
+        genotypes.vs.select(lambda v: v['fixation_time'] == -1 and (float(v['lineage_abundance']) / genotypes['population_size']) >= args.fixation_freq)['fixation_time'] = gen
 
         # For writing the tree at every cycle
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
