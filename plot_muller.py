@@ -117,9 +117,20 @@ class MullerFisherList:
         #divide freq by number of splits we have
         split_node.ref_object['frequencies'] = split_node.ref_object['frequencies'] / float(num_splits)
 
+
+
+
+
+genotypes = igraph.Graph.Read_GML("tree-end.gml")
+mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
+
+
+print(mutation_nodes[2])
+
+
 a = MullerFisherList(100)
 a.add_mutation(a.graph.vs[0], y_1)
-a.add_mutation(a.graph.vs[1], y_2/2)
+a.add_mutation(a.graph.vs[1], y_2/4)
 
 start_node = a.split_list.get_start_node()
 to_plot = []

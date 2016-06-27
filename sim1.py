@@ -22,7 +22,7 @@ from io import StringIO
 
 
 POPSIZE = int(1e7)
-NUM_CYCLES = 300
+NUM_CYCLES = 100
 MUTATION_RATE = 1e-6
 OUTFILENAME = "results.csv"
 THRESH_FREQ = 0.000
@@ -263,7 +263,7 @@ def run_simulation(num_generations):
 
     #graph_write_json(genotypes, "tree-end.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
-    return(mutation_nodes)
+    return(genotypes)
 # -----------------------------------------------------------------------------
 
 '''
@@ -276,7 +276,9 @@ pr = cProfile.Profile()
 pr.enable()
 # ... do something ...
 
-mutation_nodes = run_simulation(num_generations = NUM_CYCLES)
+genotypes = run_simulation(num_generations = NUM_CYCLES)
+mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
+
 ms = (mutation_nodes['abundances'])
 mt = (mutation_nodes['first_seen'])
 
@@ -298,6 +300,7 @@ for i_mutant in range(len(ms)):
     for j in range(len(abundances)):
         yvec[j+first_seen] = abundances[j]
 
-    pyplot.plot(xvec, yvec)
+    mutation_nodes[i_mutant]['abundances_2'] = yvec
 
-pyplot.show()
+genotypes.write_gml("tree-end.gml")
+
