@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+"""Functions for outputting data and graph structure information"""
+
+
 import csv
 import json
 
@@ -55,7 +58,7 @@ def graph_write_csv(graph, filename, **kwargs):
                                                      'Frequency',
                                                      'MaxFrequency',
                                                      'LineageFrequency',
-                                                     'FixationTime'])
+                                                     'FixationTime'], **kwargs)
         writer.writeheader()
 
         for g in graph.vs.select(lambda v: v['first_seen'] is not None):

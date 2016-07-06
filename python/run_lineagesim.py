@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import argparse
@@ -58,7 +58,7 @@ def parse_arguments():
                         help='Threshold frequency for classification as fixed (default: 1)')
     parser.add_argument('--generations', '-G', metavar='G', default=1000,
                         type=check_positive_int,
-                        help='Number of generations to simulate')
+                        help='Number of generations to simulate (default: 1000)')
     parser.add_argument('--mutation_rate', '-m', metavar='μ', default=1e-6,
                         type=check_positive_01,
                         help='Mutation rate (default: 1e-6)')
@@ -76,7 +76,7 @@ def parse_arguments():
                         type=check_nonnegative_int)
     parser.add_argument('--quiet', '-q', action='store_true', default=False,
                         help='Suppress output messages')
-    parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--version', action='version', version=ls.__version__)
 
     return parser.parse_args()
 

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import csv
+"""Functions for creating and manipulating populations of genotypes"""
 
 import igraph
+
 import numpy as np
 from numpy import hstack as nhstack
 from numpy import nonzero as nnonzero
@@ -11,7 +12,6 @@ from numpy import subtract as nsubtract
 from numpy.random import binomial as nbinom
 from numpy.random import exponential as nexp
 from numpy.random import multinomial as nmultinom
-from numpy.random import normal as nnormal
 
 from scipy.special import gammainc as gamma
 
