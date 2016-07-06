@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-__version__ = "0.1.0"
-
 import argparse
 import datetime
 import csv
@@ -15,8 +13,7 @@ import numpy as np
 
 from six.moves import range as srange
 
-from lineagesim import *
-
+import lineagesim as ls
 
 # -----------------------------------------------------------------------------
 
@@ -130,8 +127,8 @@ def run_simulation(args=parse_arguments()):
 
     genotype_counter = itertools.count(0)
 
-    genotypes = create_population(population_size=int(args.population_size),
-                                  counter=genotype_counter)
+    genotypes = ls.create_population(population_size=int(args.population_size),
+                                     counter=genotype_counter)
 
     for gen in srange(args.generations):
         genotypes.vs.select(lambda v: v['first_seen'] is None)['first_seen'] = gen
@@ -162,14 +159,15 @@ def run_simulation(args=parse_arguments()):
                               'LineageFrequency': g['lineage_frequency'],
                               'FixationTime': g['fixation_time']})
 
-        reproduce(population=genotypes, population_size=args.population_size)
-        mutate(population=genotypes,
-               mutation_rate=args.mutation_rate,
-               mutation_scale=args.mutation_scale,
-               genotype_counter=genotype_counter)
+        ls.reproduce(population=genotypes,
+                     population_size=args.population_size)
+        ls.mutate(population=genotypes,
+                  mutation_rate=args.mutation_rate,
+                  mutation_scale=args.mutation_scale,
+                  genotype_counter=genotype_counter)
 
-        prune_frequency(population=genotypes, min_frequency=args.prune_freq)
-        get_lineage_abundances(genotype=genotypes.vs[0])
+        ls.prune_frequency(population=genotypes, min_frequency=args.prune_freq)
+        ls.get_lineage_abundances(genotype=genotypes.vs[0])
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None):
             v['abundances'].append(int(v['abundance']))
@@ -179,7 +177,6 @@ def run_simulation(args=parse_arguments()):
         genotypes.vs['frequency'] = genotypes.vs['abundance'] / sum(genotypes.vs['abundance'])
         genotypes.vs['lineage_frequency'] = genotypes.vs['lineage_abundance'] / sum(genotypes.vs['abundance'])
 
-
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None and v['frequency'] > v['max_frequency']):
             v['max_frequency'] = v['frequency']
 
@@ -188,9 +185,11 @@ def run_simulation(args=parse_arguments()):
         # For writing the tree at every cycle
         #genotypes.write_gml("TREES/genotypes-{0:06d}.gml".format(gen))
 
-    graph_write_csv(genotypes, os.path.join(args.data_dir, "lineages-end.csv"))
-    graph_write_json(genotypes, os.path.join(args.data_dir, "tree-end.json"),
-                     sort_keys=True)
+    ls.output.graph_write_csv(genotypes,
+                              os.path.join(args.data_dir, "lineages-end.csv"))
+    ls.output.graph_write_json(genotypes,
+                               os.path.join(args.data_dir, "tree-end.json"),
+                               sort_keys=True)
     genotypes.write_gml(os.path.join(args.data_dir, "tree-end.gml"))
 
 # -----------------------------------------------------------------------------
