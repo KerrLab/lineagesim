@@ -9,7 +9,7 @@ Installation
 ------------
 
 ``lineagesim`` is maintained in the `Python Package
-Index <https://pypi.python.org/pypi>`__. The most recent version of the
+Index <https://pypi.python.org/pypi/lineagesim>`__. The most recent version of the
 model and its dependencies can be installed by running:
 
 .. code:: python
@@ -59,7 +59,7 @@ Dependiencies
    paper
 -  `NumPy <http://www.numpy.org>`__ - 1.11.0 used for the paper
 -  `SciPy <http://www.scipy.org>`__ - 0.17.0 used for the paper
--  `iGraph <http://igraph.org/python/>`__ - 0.7.1 used for the paper
+-  `iGraph <http://igraph.org>`__ - 0.7.1 used for the paper
 
 Running the Model
 -----------------
