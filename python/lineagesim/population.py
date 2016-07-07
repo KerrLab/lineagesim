@@ -18,8 +18,6 @@ from scipy.special import gammainc as gamma
 from six.moves import range as srange
 
 
-# -----------------------------------------------------------------------------
-
 def create_population(population_size, counter, base_fitness=1.0):
     """Create the population"""
     pop = igraph.Graph(directed=True,
@@ -133,6 +131,4 @@ def get_lineage_abundances(genotype):
         genotype['lineage_abundance'] += get_lineage_abundances(genotype=child)
 
     return genotype['lineage_abundance']
-
-# -----------------------------------------------------------------------------
 

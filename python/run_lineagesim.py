@@ -15,7 +15,6 @@ from six.moves import range as srange
 
 import lineagesim as ls
 
-# -----------------------------------------------------------------------------
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -192,7 +191,7 @@ def run_simulation(args=parse_arguments()):
                                sort_keys=True)
     genotypes.write_gml(os.path.join(args.data_dir, "tree-end.gml"))
 
-# -----------------------------------------------------------------------------
+
 
 if __name__ == "__main__":
     run_simulation()

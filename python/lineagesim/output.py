@@ -11,6 +11,8 @@ def graph_write_json(graph, filename, **kwargs):
     """Write the graph to JSON file"""
     d = {}
     d['attributes'] = {a:graph[a] for a in graph.attributes()}
+# Unfortunately, doing it this way raises some errors with attributes like
+# numpy arrays
 #    d['vertices'] = [{'index': v.index,
 #                      'attributes': v.attributes()} for v in graph.vs]
     d['vertices'] = [{'index': v.index,

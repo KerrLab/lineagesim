@@ -31,7 +31,7 @@ here = path.abspath(path.dirname(__file__))
 
 setup(
     name='lineagesim',
-    version='2.0.0',
+    version='0.2.0',
     description="Model for the publication 'Competition Between Continuously Evolving Lineages in Asexual Populations'",
     long_description="Simulation model described and used in 'Competition Between Continuously Evolving Lineages in Asexual Populations'. In each simulation, a population grows, mutates, and evolves by selection.",
     url='https://github.com/briandconnelly/hankshaweffect',
