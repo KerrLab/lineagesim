@@ -35,7 +35,7 @@ create the virtual environment into a folder (we'll use *lsenv*):
 
 .. code:: sh
 
-    virtualenv --python=python2.7 lsenv
+    virtualenv --python=python3.5 lsenv
 
 We can then enter that environment by running the ``activate`` script:
 

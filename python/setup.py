@@ -34,12 +34,11 @@ setup(
     version='0.2.0',
     description="Model for the publication 'Competition Between Continuously Evolving Lineages in Asexual Populations'",
     long_description="Simulation model described and used in 'Competition Between Continuously Evolving Lineages in Asexual Populations'. In each simulation, a population grows, mutates, and evolves by selection.",
-    url='https://github.com/briandconnelly/lineagesim',
+    url='https://github.com/kerrlab/lineagesim',
     author='Brian D. Connelly',
     author_email='bdc@bconnelly.net',
     license='BSD',
 
-    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python :: 2.7',
@@ -51,14 +50,11 @@ setup(
         'License :: OSI Approved :: BSD License'
     ],
 
-    # What does your project relate to?
-    keywords='evolution simulation population mutation lineage interference',
+    keywords='evolution simulation population mutation interference',
 
-    # You can just specify the packages manually here if your project is
-    # simple. Or you can use find_packages().
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
-    install_requires=['six', 'numpy==1.11.0', 'scipy==0.17.0', 'igraph==0.7.1'],
+    install_requires=['six>=1.10.0', 'numpy>=1.11.0', 'scipy>=0.17.0', 'python-igraph>=0.7.1'],
 
     extras_require={},
     package_data={},
