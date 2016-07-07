@@ -34,7 +34,7 @@ setup(
     version='0.2.0',
     description="Model for the publication 'Competition Between Continuously Evolving Lineages in Asexual Populations'",
     long_description="Simulation model described and used in 'Competition Between Continuously Evolving Lineages in Asexual Populations'. In each simulation, a population grows, mutates, and evolves by selection.",
-    url='https://github.com/briandconnelly/hankshaweffect',
+    url='https://github.com/briandconnelly/lineagesim',
     author='Brian D. Connelly',
     author_email='bdc@bconnelly.net',
     license='BSD',
@@ -43,6 +43,7 @@ setup(
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
@@ -57,7 +58,7 @@ setup(
     # simple. Or you can use find_packages().
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
 
-    install_requires=['numpy==1.11.0', 'scipy==0.17.0', 'igraph==0.7.1'],
+    install_requires=['six', 'numpy==1.11.0', 'scipy==0.17.0', 'igraph==0.7.1'],
 
     extras_require={},
     package_data={},
