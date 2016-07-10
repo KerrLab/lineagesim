@@ -18,14 +18,15 @@ from matplotlib import pyplot
 
 import cProfile, pstats
 from io import StringIO
+import pickle
 
 
 
 POPSIZE = int(1e7)
-NUM_CYCLES = 100
-MUTATION_RATE = 1e-6
+NUM_CYCLES = 300
+MUTATION_RATE = 1e-7
 OUTFILENAME = "results.csv"
-THRESH_FREQ = 0.000
+THRESH_FREQ = 0.001
 
 np.random.seed(90210)
 
@@ -50,6 +51,7 @@ def create_population(population_size, counter, base_fitness = 1.0):
                                      'abundance': 0,
                                      'abundances': [0],
                                      'frequency': 0,
+                                     'frequencies': [],
                                      'max_frequency': 0,
                                      'fitness': 0,
                                      'mutation_node' : None,
@@ -146,9 +148,7 @@ def prune_frequency(p, min_frequency):
     """Delete extinct leaf nodes that did not reach a given frequency"""
     genotype_nodes = p.vs.select(genotype_node_eq=True)
     prunable_nodes = genotype_nodes.select(lambda v: v.outdegree() == 0 and v['abundance'] == 0 and v['first_seen'] is not None)
-    for node in prunable_nodes:
-        print(node['max_frequency'])
-    print()
+
     prunable_nodes.delete()
     return p
 
@@ -261,8 +261,10 @@ def run_simulation(num_generations):
 
         mutation_nodes.select(lambda v: v['frequency'] > 0)['last_seen'] = gen
 
+
     #graph_write_json(genotypes, "tree-end.json", sort_keys = True)
     genotypes.write_gml("tree-end.gml")
+    pickle.dump(genotypes, open('tree-end.pickle', 'wb'))
     return(genotypes)
 # -----------------------------------------------------------------------------
 
@@ -277,19 +279,14 @@ pr.enable()
 # ... do something ...
 
 genotypes = run_simulation(num_generations = NUM_CYCLES)
-mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
+mutation_nodes = genotypes.vs.select(genotype_node_eq = False)
+print (mutation_nodes)
+
 
 ms = (mutation_nodes['abundances'])
 mt = (mutation_nodes['first_seen'])
 
 pr.disable()
-
-s = StringIO()
-sortby = 'ncalls'
-ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-ps.print_stats()
-print (s.getvalue())
-
 
 xvec = range(0, NUM_CYCLES)
 yvec = [0 for i in range(0, NUM_CYCLES)]
@@ -300,7 +297,7 @@ for i_mutant in range(len(ms)):
     for j in range(len(abundances)):
         yvec[j+first_seen] = abundances[j]
 
-    mutation_nodes[i_mutant]['abundances_2'] = yvec
+    print(mutation_nodes[i_mutant])
 
-genotypes.write_gml("tree-end.gml")
+
 

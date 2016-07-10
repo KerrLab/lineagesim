@@ -3,26 +3,7 @@ from matplotlib import pyplot as plt
 from copy import deepcopy
 import igraph
 import itertools
-
-
-# just create some random data
-fnx = lambda : np.random.randint(5, 10, 100)
-y = np.row_stack((fnx(), fnx(), fnx()))   
-# this call to 'cumsum' (cumulative sum), passing in your y data, 
-# is necessary to avoid having to manually order the datasets
-x = np.arange(100) 
-
-y_0 = [10 for i in range(100)]
-
-y_1 = [np.exp(i/70.0)-1 for i in range(100)] 
-y_1 = y_1/max(y_1)
-
-y_2 = np.zeros(100)
-for i in range(80,100):
-    y_2[i] = np.sin((i-80)/8.0)
-
-y_2 = (y_2/max(y_2))/(max(y_1))
-
+import pickle
 
 
 #Always inserts new nodes to the right of the focal node
@@ -108,7 +89,6 @@ class MullerFisherList:
         self.graph.vs[self.graph.vcount()-1]['split_list_node'] = new_splitlist_node
 
         split_node = self.split_list.split_and_insert(parent_mut_node['split_list_node'], new_splitlist_node)
-        print(split_node)
         #handle updating of frequency data here.
         #get split clones, divide freq vector by total number of splits (is that it?!)
         num_splits = len(split_node.split_clones) + 1
@@ -119,13 +99,37 @@ class MullerFisherList:
 
 
 
+NUM_CYCLES = 300
+
+def make_freq_vect(node, num_cycles=NUM_CYCLES):
+    yvec = [0 for i in range(0, num_cycles)]
+    for j in range(len(node['abundances'])):
+        yvec[j+node['first_seen']] = node['abundances'][j]
+    return yvec
 
 
-genotypes = igraph.Graph.Read_GML("tree-end.gml")
-mutation_nodes = genotypes.vs.select(genotype_node_eq=False)
+
+genotypes = pickle.load(open('tree-end.pickle', 'rb'))
+mutation_nodes = genotypes.vs.select(genotype_node_eq = False)
+genotype_nodes = genotypes.vs.select(genotype_node_eq = True)
+
+a = MullerFisherList(NUM_CYCLES)
+#print(genotypes.neighbors(genotypes.vs[0], mode="out"))
+#dfs_tuple = genotypes.subgraph(genotype_nodes).bfs(0,mode="out")
+print(list(genotypes.vs[genotypes.neighbors(genotype_nodes[1], mode="in")]))
 
 
-print(mutation_nodes[2])
+
+
+'''
+
+for mut_node in mutation_nodes:
+    plt.plot(make_freq_vector(mut_node['abundances'], mut_node['first_seen'], mut_node['last_seen']))
+
+plt.show()
+print(mutation_nodes[0])
+
+print(genotypes.neighbors(mutation_nodes[0]))
 
 
 a = MullerFisherList(100)
@@ -145,7 +149,4 @@ while next_node != None:
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-
-ax1.stackplot(x, to_plot, colors=to_plot_colors, baseline="sym", linewidth=0)
-plt.show()
-
+'''
