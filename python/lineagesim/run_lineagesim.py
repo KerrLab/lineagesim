@@ -170,6 +170,7 @@ def run_simulation(args=parse_arguments()):
 
         for v in genotypes.vs.select(lambda v: v['abundance'] > 0 and v['first_seen'] is not None):
             v['abundances'].append(int(v['abundance']))
+            v['lineage_abundances'].append(int(v['lineage_abundance']))
 
         genotypes['generations'] += 1
         genotypes['population_size'] = int(sum(genotypes.vs['abundance']))

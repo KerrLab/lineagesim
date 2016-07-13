@@ -8,6 +8,7 @@ import json
 
 
 def graph_write_json(graph, filename, **kwargs):
+    print("updated?")
     """Write the graph to JSON file"""
     d = {}
     d['attributes'] = {a:graph[a] for a in graph.attributes()}
@@ -25,6 +26,7 @@ def graph_write_json(graph, filename, **kwargs):
                                      'abundance': int(v['abundance']),
                                      'abundances': v['abundances'],
                                      'lineage_abundance': int(v['lineage_abundance']),
+                                     'lineage_abundances': v['lineage_abundances'],
                                      'frequency': v['frequency'],
                                      'max_frequency': v['max_frequency'],
                                      'lineage_frequency': v['lineage_frequency'],
